@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatRupee } from '@/lib/utils/format'
 import type { RegimeResult } from '@money-os/types'
-import { CheckCircle2, ChevronRight, X } from 'lucide-react'
+import { CheckCircle2, ChevronRight, X, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AuditTrail } from './audit-trail'
 
@@ -126,28 +126,28 @@ export function RegimeCard({ result, isRecommended, savingsVsOther }: RegimeCard
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
                 transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-[#0c0c0e]/90 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden backdrop-blur-3xl ring-1 ring-white/10"
+                className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-white/70 dark:bg-[#1A1A24]/80 border border-black/[0.05] dark:border-white/[0.12] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] rounded-3xl overflow-hidden backdrop-blur-3xl ring-1 ring-black/[0.05] dark:ring-white/[0.1]"
               >
                 {/* Background Accent Glows */}
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[var(--brand-primary)]/10 blur-[120px] pointer-events-none" />
-                <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-[var(--warning)]/10 blur-[120px] pointer-events-none" />
+                <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-[var(--brand-primary)]/20 dark:bg-[var(--brand-primary)]/10 blur-[120px] pointer-events-none" />
+                <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-[var(--warning)]/20 dark:bg-[var(--warning)]/10 blur-[120px] pointer-events-none" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-8 border-b border-white/5 bg-white/[0.01] relative z-10">
+                <div className="flex items-center justify-between p-8 border-b border-black/[0.05] dark:border-white/[0.05] bg-black/[0.02] dark:bg-white/[0.02] relative z-10">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center border border-[var(--brand-primary)]/30">
-                        <ChevronRight className="text-[var(--brand-primary)] rotate-90" size={18} />
+                      <div className="w-7 h-7 rounded-lg bg-[var(--brand-primary)]/10 flex items-center justify-center border border-[var(--brand-primary)]/20">
+                        <Calculator className="text-[var(--brand-primary)]" size={14} />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand-primary)]">Calculation Engine</span>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--brand-primary)]/60 dark:text-[var(--brand-primary)]">Tax Math</span>
                     </div>
-                    <h2 className="text-3xl font-black text-white tracking-tight">
-                      {result.regime === 'old' ? 'Old Regime' : 'New Regime'} <span className="text-white/40">Breakdown</span>
+                    <h2 className="text-2xl font-black text-black dark:text-white tracking-tight">
+                      {result.regime === 'old' ? 'Old Regime' : 'New Regime'} <span className="text-black/30 dark:text-white/30">Details</span>
                     </h2>
                   </div>
                   <button 
                     onClick={() => setShowDetails(false)}
-                    className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg"
+                    className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-all hover:scale-110 active:scale-95 border border-black/5 dark:border-white/5 shadow-sm"
                   >
                     <X size={24} />
                   </button>
@@ -158,29 +158,29 @@ export function RegimeCard({ result, isRecommended, savingsVsOther }: RegimeCard
                   <div className="grid lg:grid-cols-2 gap-16">
                     {/* Left: Deduction Breakdown */}
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-6 flex items-center gap-2 uppercase tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-[var(--brand-primary)] shadow-[0_0_10px_var(--brand-primary)]"></span>
-                        Deduction Breakdown
+                      <h4 className="text-[10px] font-black text-[var(--text-tertiary)] mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)]"></span>
+                        Tax Savings Applied
                       </h4>
                       {result.deductionBreakdown && result.deductionBreakdown.length > 0 ? (
                         <div className="space-y-5">
                           {result.deductionBreakdown.map((item, i) => (
-                            <div key={i} className="space-y-2 p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors">
+                            <div key={i} className="space-y-2 p-5 rounded-2xl bg-white/60 dark:bg-white/[0.08] border border-black/[0.05] dark:border-white/[0.1] hover:bg-white/80 dark:hover:bg-white/[0.12] transition-all shadow-sm group/card">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <p className="text-sm font-semibold text-white/90">{item.section}</p>
-                                  <p className="text-xs text-white/50 mt-0.5">{item.label}</p>
+                                  <p className="text-sm font-bold text-black/80 dark:text-white/90 group-hover/card:text-[var(--brand-primary)] dark:group-hover/card:text-[var(--brand-secondary)] transition-colors">{item.section}</p>
+                                  <p className="text-[11px] text-black/40 dark:text-white/40 mt-1 font-medium">{item.label}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm font-mono font-bold text-white">
+                                  <p className="text-sm font-mono font-black text-black/90 dark:text-white">
                                     {formatRupee(item.amount)}
                                   </p>
-                                  <p className="text-[10px] text-white/40 font-mono mt-1">
-                                    Max: {formatRupee(item.limit)}
+                                  <p className="text-[9px] text-black/30 dark:text-white/30 font-bold font-mono mt-1 uppercase tracking-wider">
+                                    Limit: {formatRupee(item.limit)}
                                   </p>
                                 </div>
                               </div>
-                              <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden shadow-inner">
+                              <div className="h-1 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden mt-4">
                                 <div 
                                   className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[#6e56ff] rounded-full transition-all relative"
                                   style={{ width: `${Math.min(100, Math.max(0, (item.amount / item.limit) * 100))}%` }}
@@ -200,11 +200,11 @@ export function RegimeCard({ result, isRecommended, savingsVsOther }: RegimeCard
 
                     {/* Right: Audit Trail */}
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-6 flex items-center gap-2 uppercase tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-[var(--warning)] shadow-[0_0_10px_var(--warning)]"></span>
-                        Calculation Pipeline
+                      <h4 className="text-[10px] font-black text-black/30 dark:text-white/30 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]"></span>
+                        Step-by-Step Math
                       </h4>
-                      <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
+                      <div className="p-6 rounded-2xl bg-white/40 dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] shadow-sm">
                         {result.auditTrail && <AuditTrail steps={result.auditTrail} />}
                       </div>
                     </div>

@@ -136,7 +136,7 @@ function buildNewRegimeAuditTrail(
   trail.push({ step: step++, label: 'Net Taxable Income', amount: taxable, running, formula: formatAuditAmount(taxable), isDeduction: false })
   trail.push({
     step: step++,
-    label: 'Income Tax (New Regime slabs: 0-4L nil, 4-8L 5%, 8-12L 10%, 12-16L 15%, 16-20L 20%, 20-24L 25%, 24L+ 30%)',
+    label: 'Income Tax (New Regime slabs)',
     amount: baseTax,
     running: baseTax,
     formula: formatAuditAmount(baseTax),

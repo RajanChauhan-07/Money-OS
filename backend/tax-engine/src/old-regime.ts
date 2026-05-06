@@ -401,7 +401,7 @@ function buildAuditTrail(
 
   running = taxable
   trail.push({ step: step++, label: 'Net Taxable Income', amount: taxable, running, formula: formatAuditAmount(taxable), isDeduction: false })
-  trail.push({ step: step++, label: 'Income Tax (as per slabs)', amount: baseTax, running: baseTax, formula: formatAuditAmount(baseTax), isDeduction: false })
+  trail.push({ step: step++, label: 'Income Tax (Old Regime slabs)', amount: baseTax, running: baseTax, formula: formatAuditAmount(baseTax), isDeduction: false })
 
   if (surcharge > 0) {
     running = baseTax + surcharge
