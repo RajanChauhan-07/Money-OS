@@ -206,12 +206,6 @@ export default function ReviewPage() {
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 pt-[72px] pb-24">
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--success)]/20 bg-[var(--success-bg)] px-4 py-1.5 mb-4">
-            <CheckCircle2 size={14} className="text-[var(--success)]" />
-            <span className="text-xs font-semibold text-[var(--success)]">
-              {form16Extraction?.confidence ? `${form16Extraction.confidence}% confidence` : 'Extracted successfully'}
-            </span>
-          </div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-3">
             Review and adjust for this year
           </h1>

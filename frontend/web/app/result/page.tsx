@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, CheckCircle2, Sparkles, ArrowLeft, Share2, Save, Check, Target, AlertCircle, TrendingUp, Info, Sliders } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Sparkles, ArrowLeft, Share2, Save, Check, Target, AlertCircle, TrendingUp, Info, Sliders, FileText, X, Download } from 'lucide-react'
 import { Button } from '@money-os/ui'
 import { MetricCard, RegimeCard, InsightCard, AIAssistantWidget, LanguageToggle } from '@/components/ui'
 import { useTaxStore } from '@/lib/stores/tax-store'
@@ -20,13 +20,15 @@ export default function TaxResultPage() {
     savePlan, 
     activeScenarioMode, 
     setActiveScenarioMode,
-    scenarios 
+    scenarios,
+    pdfUrl
   } = useTaxStore()
   
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
 
   const supabase = getSupabaseBrowserClient()
 
@@ -152,9 +154,12 @@ export default function TaxResultPage() {
             isOptimized ? "border-t-[var(--success)]" : isCustom ? "border-t-[var(--warning)]" : "border-t-[var(--brand-primary)]"
           )}
         >
-          <div className="grid gap-8 px-6 py-8 md:grid-cols-[1.2fr_0.8fr] md:px-8 md:py-10">
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
+          <div className={cn(
+            "flex flex-col gap-6 px-6 py-6 md:px-8",
+            (taxResult.lossMeter > 0 || isOptimized) ? "md:flex-row md:items-center justify-between md:py-8" : "items-center text-center max-w-4xl mx-auto md:py-6"
+          )}>
+            <div className={cn("flex-1", (taxResult.lossMeter > 0 || isOptimized) ? "max-w-2xl" : "flex flex-col items-center")}>
+              <div className={cn("flex flex-wrap items-center gap-3", !(taxResult.lossMeter > 0 || isOptimized) && "justify-center")}>
                 <span className={cn(
                   "rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]",
                   isOptimized ? "border-[var(--success)]/20 bg-[var(--success-bg)] text-[var(--success)]" : isCustom ? "border-[var(--warning)]/20 bg-[var(--warning)]/10 text-[var(--warning)]" : "border-[var(--brand-primary)]/20 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]"
@@ -163,95 +168,71 @@ export default function TaxResultPage() {
                 </span>
                 <span className="text-xs text-[var(--text-tertiary)] font-medium">FY 2025-26</span>
               </div>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
+              <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
                 {isOptimized 
                   ? `Save up to ${formatRupee(taxResult.savingsWithRecommended)} more.`
                   : (taxResult.recommendedRegime === 'old' ? 'Old regime saves you more.' : 'New regime is better for you.')}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+              <p className={cn("mt-3 text-base leading-relaxed text-[var(--text-secondary)]", !(taxResult.lossMeter > 0 || isOptimized) && "max-w-2xl mx-auto")}>
                 {isOptimized 
                   ? "By maximizing Section 80C, 80D, and NPS, you can unlock significant tax savings and build long-term wealth."
                   : taxResult.reasoning}
               </p>
               
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className={cn("mt-6 flex flex-wrap gap-3", !(taxResult.lossMeter > 0 || isOptimized) && "justify-center")}>
                 <Button size="lg" onClick={() => router.push('/plan/summary')}>
                   {isOptimized ? "View Actionable Roadmap" : "Show My Investment Plan"}
                   <ArrowRight size={16} className="ml-2" />
                 </Button>
+                <Button size="lg" variant="outline" onClick={() => setIsPdfModalOpen(true)}>
+                  <FileText size={16} className="mr-2" />
+                  View PDF
+                </Button>
               </div>
-
-              {/* Break-even switch strategy message */}
-              {taxResult.switchStrategy && !isOptimized && (
-                <div className="mt-6 p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-start gap-2 max-w-md">
-                  <Info size={16} className="text-[var(--text-tertiary)] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[var(--text-secondary)]">{taxResult.switchStrategy}</p>
-                </div>
-              )}
             </div>
 
-            <div className="space-y-4">
-               {/* 2. Tax Efficiency Score */}
-               <div className="surface-elevated p-6 rounded-2xl border border-[var(--border-subtle)] relative overflow-hidden">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm font-bold text-[var(--text-primary)]">Tax Efficiency Score</span>
-                  <span className={cn("text-2xl font-bold font-mono", taxResult.taxEfficiencyScore > 70 ? "text-[var(--success)]" : "text-[var(--warning)]")}>
-                    {taxResult.taxEfficiencyScore}%
-                  </span>
-                </div>
-                <div className="h-3 w-full bg-[var(--bg-base)] rounded-full overflow-hidden shadow-inner">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${taxResult.taxEfficiencyScore}%` }}
-                    className={cn("h-full", taxResult.taxEfficiencyScore > 70 ? "bg-[var(--success)]" : "bg-[var(--warning)]")}
-                  />
-                </div>
-                <p className="mt-3 text-xs text-[var(--text-secondary)] font-medium">
-                  {taxResult.taxEfficiencyScore === 100 
-                    ? "Perfectly optimized! You're paying the absolute minimum." 
-                    : `You are currently missing ${100 - taxResult.taxEfficiencyScore}% of your potential legal tax savings.`}
-                </p>
+            {(taxResult.lossMeter > 0 || isOptimized) && (
+              <div className="w-full md:w-auto md:min-w-[320px] shrink-0">
+                {/* 3. Loss Meter */}
+                {taxResult.lossMeter > 0 && !isOptimized && (
+                  <div className="surface-elevated p-6 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger)]/5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-full bg-[var(--danger)]/10 text-[var(--danger)]">
+                        <TrendingUp size={24} className="rotate-180" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[var(--danger)] uppercase tracking-wide">Loss Meter</p>
+                        <p className="mt-1 text-3xl font-bold font-mono text-[var(--text-primary)]">
+                          {formatRupee(taxResult.lossMeter)}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--text-secondary)] font-medium">
+                          Extra tax you're paying unnecessarily this year.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isOptimized && (
+                  <div className="surface-elevated p-6 rounded-2xl border border-[var(--success)]/30 bg-[var(--success-bg)] shadow-sm">
+                     <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-full bg-[var(--success)]/10 text-[var(--success)]">
+                        <Target size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[var(--success)] uppercase tracking-wide">Projected Benefit</p>
+                        <p className="mt-1 text-3xl font-bold font-mono text-[var(--text-primary)]">
+                          {formatRupee(taxResult.lossMeter)}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--success)]/90 font-medium">
+                          Total savings if you execute the optimized plan.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* 3. Loss Meter */}
-              {taxResult.lossMeter > 0 && !isOptimized && (
-                <div className="surface-elevated p-6 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger)]/5 shadow-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-full bg-[var(--danger)]/10 text-[var(--danger)]">
-                      <TrendingUp size={24} className="rotate-180" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[var(--danger)] uppercase tracking-wide">Loss Meter</p>
-                      <p className="mt-1 text-3xl font-bold font-mono text-[var(--text-primary)]">
-                        {formatRupee(taxResult.lossMeter)}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--text-secondary)] font-medium">
-                        Extra tax you're paying unnecessarily this year.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {isOptimized && (
-                <div className="surface-elevated p-6 rounded-2xl border border-[var(--success)]/30 bg-[var(--success-bg)] shadow-sm">
-                   <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-full bg-[var(--success)]/10 text-[var(--success)]">
-                      <Target size={24} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[var(--success)] uppercase tracking-wide">Projected Benefit</p>
-                      <p className="mt-1 text-3xl font-bold font-mono text-[var(--text-primary)]">
-                        {formatRupee(taxResult.lossMeter)}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--success)]/90 font-medium">
-                        Total savings if you execute the optimized plan.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </motion.section>
 
@@ -331,6 +312,87 @@ export default function TaxResultPage() {
       </main>
 
       <AIAssistantWidget />
+
+      {/* PDF Viewer Modal */}
+      <AnimatePresence>
+        {isPdfModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPdfModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--bg-base)] rounded-2xl shadow-2xl border border-[var(--border-subtle)] flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                <div className="flex items-center gap-2">
+                  <FileText className="text-[var(--brand-primary)]" size={20} />
+                  <h2 className="text-base font-semibold text-[var(--text-primary)]">Uploaded Form 16</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      download="Form-16.pdf"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-colors text-xs font-medium mr-2"
+                    >
+                      <Download size={14} />
+                      Download
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setIsPdfModalOpen(false)}
+                    className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)] transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className={cn("flex-1 overflow-auto bg-zinc-100 dark:bg-zinc-950 flex justify-center", pdfUrl ? "p-0 min-h-[75vh]" : "p-6 md:p-10 min-h-[60vh]")}>
+                {pdfUrl ? (
+                  <embed 
+                    src={pdfUrl}
+                    type="application/pdf"
+                    className="w-full h-[75vh] border-0"
+                  />
+                ) : (
+                  <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 shadow-sm rounded-lg border border-zinc-200 dark:border-zinc-800 p-8 md:p-12 space-y-8 h-max my-auto">
+                    {/* Fake PDF Skeleton */}
+                    <div className="flex justify-between items-start border-b border-zinc-100 dark:border-zinc-800 pb-8">
+                      <div className="space-y-3 w-1/2">
+                        <div className="h-6 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        <div className="h-3 w-1/2 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
+                      </div>
+                      <div className="h-12 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="h-4 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded" />
+                      <div className="h-4 w-5/6 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
+                      <div className="h-4 w-4/6 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6 pt-6">
+                      <div className="h-32 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50" />
+                      <div className="h-32 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50" />
+                    </div>
+                    
+                    <div className="h-48 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50 mt-6" />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

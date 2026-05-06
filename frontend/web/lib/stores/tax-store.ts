@@ -30,8 +30,10 @@ interface TaxStore {
   // ── Upload state ──────────────────────────────────────────────────────
   uploadState: UploadState
   uploadError: string | null
+  pdfUrl: string | null
   setUploadState: (state: UploadState) => void
   setUploadError: (error: string | null) => void
+  setPdfUrl: (url: string | null) => void
 
   // ── Form 16 raw extraction ────────────────────────────────────────────
   form16Extraction: Form16Extraction | null
@@ -139,6 +141,7 @@ export const useTaxStore = create<TaxStore>()(
       // State
       uploadState: 'idle',
       uploadError: null,
+      pdfUrl: null,
       form16Extraction: null,
       derivedProfile: null,
       taxInput: null,
@@ -155,6 +158,7 @@ export const useTaxStore = create<TaxStore>()(
       // Setters
       setUploadState: (state) => set({ uploadState: state }),
       setUploadError: (error) => set({ uploadError: error, uploadState: error ? 'error' : get().uploadState }),
+      setPdfUrl: (url) => set({ pdfUrl: url }),
       setForm16Extraction: (extraction) => set({ form16Extraction: extraction }),
       setDerivedProfile: (profile) => set({ derivedProfile: profile }),
       setTaxInput: (input) => set({ taxInput: input }),
@@ -308,6 +312,7 @@ export const useTaxStore = create<TaxStore>()(
         set({
           uploadState: 'idle',
           uploadError: null,
+          pdfUrl: null,
           form16Extraction: null,
           derivedProfile: null,
           taxInput: null,

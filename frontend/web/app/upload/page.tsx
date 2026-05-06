@@ -10,19 +10,19 @@ import { cn } from '@/lib/utils'
 
 const stageMessages: Record<string, { title: string; description: string }> = {
   uploading: {
-    title: 'Sending to secure vault',
+    title: 'Uploading securely',
     description: 'Encrypting and transmitting your file for processing.'
   },
   reading: {
-    title: 'Decrypting & Scanning',
+    title: 'Reading your document',
     description: 'Our OCR engine is identifying tables and salary fields.'
   },
   extracting: {
-    title: 'AI Intelligence Parsing',
-    description: 'Mapping numbers to income heads and investment sections.'
+    title: 'Organizing your data',
+    description: 'Sorting your income and tax deductions.'
   },
   reviewing: {
-    title: 'Validation & Quality Check',
+    title: 'Final checks',
     description: 'Cross-verifying totals to ensure 99.9% accuracy.'
   },
   done: {
@@ -58,6 +58,14 @@ export default function UploadPage() {
 
     setUploadError(null)
     setUploadState('uploading')
+
+    // Save the PDF as base64 so it persists reliably across page navigations
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      useTaxStore.getState().setPdfUrl(dataUrl)
+    }
+    reader.readAsDataURL(file)
 
     // Simulate stages with delays for UX
     await new Promise(r => setTimeout(r, 800))
