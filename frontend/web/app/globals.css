@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand */
+  --brand-primary: #0F172A;
+  --brand-primary-rgb: 15, 23, 42;
+  --brand-secondary: #8B5CF6;
+  --brand-accent: #06B6D4;
+
+  /* Backgrounds */
+  --bg-base: #FFFFFF;
+  --bg-base-rgb: 255, 255, 255;
+  --bg-surface: #F8FAFC;
+  --bg-surface-rgb: 248, 250, 252;
+  --bg-elevated: #F1F5F9;
+  --bg-overlay: rgba(0,0,0,0.04);
+
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  /* Borders */
+  --border-subtle: rgba(15,23,42,0.08);
+  --border-default: rgba(15,23,42,0.12);
+  --border-strong: rgba(15,23,42,0.20);
+
+  /* Semantic */
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warning: #F59E0B;
+  --warning-bg: #FFFBEB;
+  --danger: #EF4444;
+  --danger-bg: #FEF2F2;
+  --info: var(--brand-primary);
+  --info-bg: var(--bg-elevated);
+
+  /* Indian Rupee colors */
+  --rupee-positive: #059669;
+  --rupee-negative: #DC2626;
+  --rupee-neutral: var(--brand-primary);
+
+  /* Section colors */
+  --section-80c: var(--brand-primary);
+  --section-80d: #06B6D4;
+  --section-nps: #8B5CF6;
+  --section-hra: #F59E0B;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 4px 6px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+  --shadow-lg: 0 10px 15px rgba(15,23,42,0.08), 0 4px 6px rgba(15,23,42,0.04);
+}
+
+.dark {
+  --brand-primary: #F1F5F9;
+  --brand-primary-rgb: 241, 245, 249;
+  --brand-secondary: #A78BFA;
+  --brand-accent: #22D3EE;
+
+  --bg-base: #0A0A0F;
+  --bg-base-rgb: 10, 10, 15;
+  --bg-surface: #111118;
+  --bg-surface-rgb: 17, 17, 24;
+  --bg-elevated: #1A1A24;
+  --bg-overlay: rgba(255,255,255,0.04);
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #475569;
+  --text-inverse: #0F172A;
+
+  --border-subtle: rgba(241,245,249,0.06);
+  --border-default: rgba(241,245,249,0.10);
+  --border-strong: rgba(241,245,249,0.16);
+
+  --success: #34D399;
+  --success-bg: rgba(16,185,129,0.12);
+  --warning: #FBBF24;
+  --warning-bg: rgba(245,158,11,0.12);
+  --danger: #F87171;
+  --danger-bg: rgba(239,68,68,0.12);
+  --info: var(--brand-primary);
+  --info-bg: var(--bg-elevated);
+
+  --rupee-positive: #34D399;
+  --rupee-negative: #F87171;
+  --rupee-neutral: var(--brand-primary);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  transition: background 0.2s, color 0.2s;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand-primary) 24%, transparent);
+}
+
+/* Rupee formatter utility */
+.rupee::before { content: "₹"; }
+.positive { color: var(--rupee-positive); }
+.negative { color: var(--rupee-negative); }
+.neutral { color: var(--rupee-neutral); }
+
+/* Glass card */
+.glass {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}
+
+/* Metric card */
+.metric-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+/* Section progress bar base */
+.section-bar { height: 6px; border-radius: var(--radius-full); background: var(--bg-elevated); }
+.section-bar-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.6s cubic-bezier(0.16,1,0.3,1); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
+
+.page-grid { display: grid; gap: 1.5rem; }
+.surface-panel { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.surface-elevated { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+
+/* View Transition API overrides */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

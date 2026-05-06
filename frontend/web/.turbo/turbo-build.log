@@ -1,0 +1,82 @@
+
+
+> @money-os/web@1.0.0 build
+> next build
+
+   ▲ Next.js 15.5.15
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 10.0s
+   Linting and checking validity of types     ✓ Linting and checking validity of types 
+   Collecting page data     ✓ Collecting page data 
+ ✓ Generating static pages (43/43)
+   Collecting build traces     ✓ Collecting build traces 
+   Finalizing page optimization     ✓ Finalizing page optimization 
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      252 B         198 kB
+├ ○ /_not-found                            209 B         103 kB
+├ ƒ /[slug]                                17 kB         316 kB
+├ ƒ /api/admin/audit                       209 B         103 kB
+├ ƒ /api/admin/notify                      209 B         103 kB
+├ ƒ /api/admin/recalculate                 209 B         103 kB
+├ ƒ /api/admin/stats                       209 B         103 kB
+├ ƒ /api/admin/users                       209 B         103 kB
+├ ƒ /api/auth/kyc                          209 B         103 kB
+├ ƒ /api/auth/otp/send                     209 B         103 kB
+├ ƒ /api/auth/otp/verify                   209 B         103 kB
+├ ƒ /api/auth/pan/verify                   209 B         103 kB
+├ ƒ /api/chat                              209 B         103 kB
+├ ƒ /api/form16/parse                      209 B         103 kB
+├ ƒ /api/funds/[schemeCode]                209 B         103 kB
+├ ƒ /api/funds/search                      209 B         103 kB
+├ ƒ /api/notifications                     209 B         103 kB
+├ ƒ /api/portfolio/holdings                209 B         103 kB
+├ ƒ /api/portfolio/invest                  209 B         103 kB
+├ ƒ /api/portfolio/sip                     209 B         103 kB
+├ ƒ /api/portfolio/transactions            209 B         103 kB
+├ ƒ /api/portfolio/xirr                    209 B         103 kB
+├ ƒ /api/profile/goals                     209 B         103 kB
+├ ƒ /api/profile/investments               209 B         103 kB
+├ ƒ /api/profile/life                      209 B         103 kB
+├ ƒ /api/profile/risk                      209 B         103 kB
+├ ƒ /api/profile/salary                    209 B         103 kB
+├ ƒ /api/reports/[type]                    209 B         103 kB
+├ ƒ /api/tax/calculate                     209 B         103 kB
+├ ƒ /api/tax/current                       209 B         103 kB
+├ ƒ /api/tax/history                       209 B         103 kB
+├ ƒ /api/tax/plan                          209 B         103 kB
+├ ƒ /auth/callback                         209 B         103 kB
+├ ○ /dashboard                           11.1 kB         311 kB
+├ ƒ /history/[[...screen]]                 254 B         195 kB
+├ ƒ /invest/[[...screen]]                  254 B         195 kB
+├ ○ /login                               4.14 kB         213 kB
+├ ○ /mpin                                3.26 kB         149 kB
+├ ƒ /notifications/[[...screen]]           254 B         195 kB
+├ ○ /otp                                 4.27 kB         150 kB
+├ ƒ /plan/[screen]                       4.48 kB         202 kB
+├ ○ /plan/summary                        7.01 kB         205 kB
+├ ƒ /reports/[screen]                    4.45 kB         202 kB
+├ ○ /result                              5.79 kB         263 kB
+├ ○ /review                              7.34 kB         166 kB
+├ ƒ /settings/[[...screen]]                254 B         195 kB
+├ ○ /setup                               9.55 kB         168 kB
+├ ○ /simulator                           3.69 kB         198 kB
+├ ƒ /support/[[...screen]]                 254 B         195 kB
+├ ƒ /tax/[screen]                          254 B         195 kB
+├ ○ /tax/result                          5.32 kB         203 kB
+├ ƒ /tracker/[[...screen]]                 254 B         195 kB
+└ ○ /upload                              6.28 kB         157 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/18-6be01bed8b8b7621.js        46.3 kB
+  ├ chunks/87c73c54-09e1ba5c70e60a51.js  54.2 kB
+  └ other shared chunks (total)          1.98 kB
+
+
+ƒ Middleware                             89.1 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

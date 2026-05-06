@@ -1,0 +1,35 @@
+
+> @money-os/web@1.0.0 dev
+> next dev --turbopack -p 3005
+
+   ▲ Next.js 15.5.15 (Turbopack)
+   - Local:        http://localhost:3005
+   - Network:      http://10.11.138.18:3005
+   - Environments: .env.local
+
+ ✓ Starting...
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 788ms
+ ✓ Ready in 3.2s
+ ○ Compiling /login ...
+ ✓ Compiled /login in 11s
+ GET /login 200 in 12250ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1858ms
+ GET / 200 in 2760ms
+ ○ Compiling /setup ...
+ ✓ Compiled /setup in 1603ms
+React does not recognize the `isLoading` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `isloading` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+ GET /setup 200 in 2346ms
+ ○ Compiling /upload ...
+ ✓ Compiled /upload in 1792ms
+ GET /upload 200 in 2161ms
+ ○ Compiling /review ...
+ GET / 200 in 1431ms
+ GET /review 200 in 4183ms
+ GET /upload 200 in 1196ms
+ ✓ Compiled /review in 13.1s
+ GET /favicon.ico 404 in 13692ms
+ GET /favicon.ico 404 in 370ms
+ GET / 200 in 1275ms
+ GET /upload 200 in 223ms
