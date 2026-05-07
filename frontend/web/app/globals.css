@@ -50,10 +50,11 @@
   --section-hra: #F59E0B;
 
   /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-2xl: 48px;
   --radius-full: 9999px;
 
   /* Shadows */
@@ -135,18 +136,19 @@ textarea {
 
 /* Glass card */
 .glass {
-  background: var(--bg-elevated);
+  background: rgba(var(--bg-base-rgb), 0.7);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(8px);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(16px);
 }
+
+.page-grid { display: grid; gap: 1.5rem; }
+.surface-panel { @apply bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-[var(--border-subtle)] dark:border-white/5 rounded-[2rem]; }
+.surface-elevated { @apply bg-white/60 dark:bg-white/[0.06] backdrop-blur-xl border border-[var(--border-subtle)] dark:border-white/10 rounded-[2.5rem]; }
 
 /* Metric card */
 .metric-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  @apply bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-[var(--border-subtle)] dark:border-white/5 rounded-2xl p-5;
 }
 
 /* Section progress bar base */
@@ -157,10 +159,6 @@ textarea {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
-
-.page-grid { display: grid; gap: 1.5rem; }
-.surface-panel { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
-.surface-elevated { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
 
 /* View Transition API overrides */
 ::view-transition-old(root),

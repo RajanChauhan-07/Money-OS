@@ -46,8 +46,10 @@ export function RegimeCard({ result, isRecommended, savingsVsOther }: RegimeCard
   return (
     <div className={cn(
       'rounded-2xl border relative transition-all duration-300 overflow-hidden',
-      isRecommended ? 'border-[var(--brand-primary)] shadow-lg' : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)]'
-    )} style={{ background: isRecommended ? 'var(--info-bg)' : 'var(--bg-surface)' }}>
+      isRecommended 
+        ? 'border-[var(--brand-primary)] shadow-2xl bg-gradient-to-br from-white/90 to-white/40 dark:from-white/20 dark:to-white/5 ring-1 ring-white/60 dark:ring-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.1)] backdrop-blur-[40px]' 
+        : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)] bg-white/30 dark:bg-black/40 dark:border-white/10 backdrop-blur-md'
+    )}>
       {isRecommended && (
         <div className="absolute top-0 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-[var(--brand-primary)] text-[var(--text-inverse)] text-[11px] font-bold uppercase tracking-wider px-4 py-1 rounded-b-xl shadow-sm z-10">
           <CheckCircle2 size={12} /> Recommended

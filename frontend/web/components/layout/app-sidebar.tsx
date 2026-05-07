@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   BarChart3,
@@ -26,6 +27,7 @@ import { mockUser } from '@/lib/mock-data'
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'My Tax Plan', href: '/tax/result', icon: Receipt },
+  { label: 'Summary', href: '/plan/summary', icon: FileText },
   { label: 'Allocation', href: '/plan/80c', icon: PieChart },
   { label: 'Cash Flow', href: '/plan/cashflow', icon: TrendingUp },
   { label: 'Invest', href: '/invest', icon: Banknote },
@@ -70,67 +72,113 @@ export function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen 
             active ? 'text-[var(--brand-primary)]' : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
           )}
         />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        <AnimatePresence>
+          {!collapsed && (
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="truncate"
+            >
+              {item.label}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </Link>
     )
   }
 
   const SidebarContent = () => (
-    <div
+    <motion.div
+      initial={false}
+      animate={{ width: collapsed ? 72 : 248 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className={cn(
-        'flex h-full flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-300',
-        collapsed ? 'w-[72px]' : 'w-[248px]'
+        'flex h-fit max-h-[calc(100vh-1.5rem)] flex-col mx-4 mt-2 mb-4 rounded-[2.5rem] border border-white/10 dark:border-white/5 bg-white/70 dark:bg-black/40 backdrop-blur-2xl shadow-2xl overflow-hidden relative z-30'
       )}
     >
-      <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white shadow-md">
-              <span className="text-[12px] font-bold">M</span>
-            </div>
-            <div>
-              <span className="block text-[14px] font-semibold text-[var(--text-primary)]">Money OS</span>
-              <span className="block text-[11px] text-[var(--text-tertiary)]">FY 2025-26 planner</span>
-            </div>
-          </div>
-        )}
+      <div className="flex items-center justify-between p-6 border-b border-white/10 dark:border-white/5 h-20">
+        <AnimatePresence mode="wait">
+          {!collapsed && (
+            <motion.div 
+              key="header"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="flex items-center"
+            >
+              <span className="block text-[18px] font-black tracking-tighter text-[var(--text-primary)]">Money OS</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-elevated)]"
+          className={cn(
+            "rounded-xl p-2 text-[var(--text-tertiary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)]",
+            collapsed && "mx-auto"
+          )}
         >
-          <ChevronLeft size={16} className={cn('transition-transform', collapsed && 'rotate-180')} />
+          <ChevronLeft size={18} className={cn('transition-transform duration-500', collapsed && 'rotate-180')} />
         </button>
       </div>
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => <NavItem key={item.href} item={item} />)}
-        <div className="my-3 border-t border-[var(--border-subtle)]" />
-        {secondaryNav.map((item) => <NavItem key={item.href} item={item} />)}
-      </nav>
-      {!collapsed && (
-        <div className="mx-3 mb-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-base)] p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Profile</p>
-          <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{mockUser.name}</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Ready to unlock another {mockUser.kycStatus === 'verified' ? 'tax win' : 'KYC step'}.</p>
-          <Link
-            href="/tracker"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--brand-primary)]"
-          >
-            Review annual plan <ArrowRight size={14} />
-          </Link>
+      
+      <nav className="p-4 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+        <div className="space-y-1">
+          {navItems.map((item) => <NavItem key={item.href} item={item} />)}
         </div>
-      )}
-    </div>
+        <div className="my-6 border-t border-white/10 dark:border-white/5 mx-2" />
+        <div className="space-y-1">
+          {secondaryNav.map((item) => <NavItem key={item.href} item={item} />)}
+        </div>
+      </nav>
+
+      <AnimatePresence>
+        {!collapsed && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="m-4 rounded-3xl border border-white/10 dark:border-white/5 bg-white/30 dark:bg-white/5 p-5 backdrop-blur-md shadow-inner group/profile transition-all hover:bg-white/40 dark:hover:bg-white/10"
+          >
+            <div className="flex items-center gap-3">
+               <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center text-white font-bold shadow-md">
+                 {mockUser.name.charAt(0)}
+               </div>
+               <div className="flex-1 min-w-0">
+                 <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{mockUser.name}</p>
+                 <p className="text-[10px] text-[var(--text-tertiary)] truncate">Premium User</p>
+               </div>
+            </div>
+            <Link
+              href="/tracker"
+              className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-[var(--brand-primary)] text-white text-[11px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/20"
+            >
+              Review annual plan <ArrowRight size={12} />
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex flex-shrink-0"><SidebarContent /></div>
+      <div className={cn("hidden md:flex flex-shrink-0 transition-all duration-300", collapsed ? "w-[104px]" : "w-[280px]")}>
+        <SidebarContent />
+      </div>
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <div className="absolute bottom-0 left-0 top-0 w-[248px]"><SidebarContent /></div>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <motion.div 
+            initial={{ x: -280 }}
+            animate={{ x: 0 }}
+            exit={{ x: -280 }}
+            className="absolute bottom-0 left-0 top-0 w-[280px]"
+          >
+            <SidebarContent />
+          </motion.div>
         </div>
       )}
     </>

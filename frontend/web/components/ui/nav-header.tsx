@@ -47,7 +47,7 @@ function NavHeader() {
           className="nav-glass relative mx-auto flex w-fit rounded-full p-1.5 overflow-hidden transition-all duration-500"
           onMouseLeave={() => setPosition((pv) => ({ ...pv, opacity: 0 }))}
         >
-          <Tab setPosition={setPosition}>Home</Tab>
+          <Tab setPosition={setPosition} href="/">Home</Tab>
           <Tab setPosition={setPosition}>Pricing</Tab>
           <Tab setPosition={setPosition}>About</Tab>
           <Tab setPosition={setPosition}>Services</Tab>

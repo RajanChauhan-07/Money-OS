@@ -11,10 +11,10 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'rounded-xl border transition-all',
+          'rounded-[2rem] border transition-all duration-300',
           variant === 'default' && 'bg-[var(--bg-surface)] border-[var(--border-subtle)]',
-          variant === 'elevated' && 'bg-[var(--bg-elevated)] border-[var(--border-default)] shadow-lg',
-          variant === 'glass' && 'bg-[var(--bg-elevated)]/80 border-[var(--border-subtle)] backdrop-blur-sm',
+          variant === 'elevated' && 'bg-[var(--bg-elevated)] border-[var(--border-default)] shadow-xl',
+          variant === 'glass' && 'bg-white/40 dark:bg-white/5 border-white/20 dark:border-white/10 backdrop-blur-md shadow-2xl',
           className
         )}
         {...props}

@@ -71,15 +71,15 @@ export function WhatIfSimulator() {
     setActiveScenarioMode('current')
   }
 
-  // Delta calculation (current vs what-if)
-  const getTax = (res: any) => res ? (res.recommendedRegime === 'old' ? res.old.totalTax : res.new.totalTax) : 0
-  const baseTax = getTax(taxResult)
-  const simTax = getTax(whatIfResult)
+  // Delta calculation (current vs what-if) based specifically on Old Regime
+  // since these deduction sliders only impact the Old Regime tax.
+  const baseTax = taxResult ? taxResult.old.totalTax : 0
+  const simTax = whatIfResult ? whatIfResult.old.totalTax : 0
   const delta = baseTax - simTax
 
   return (
-    <div className="surface-elevated rounded-2xl border border-[var(--border-subtle)] overflow-hidden">
-      <div className="bg-[var(--bg-elevated)] p-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
+    <div className="surface-elevated rounded-2xl border overflow-hidden">
+      <div className="bg-white/30 dark:bg-black/20 p-4 border-b border-[var(--border-subtle)] flex justify-between items-center backdrop-blur-md">
         <div className="flex items-center gap-2 text-[var(--text-primary)] font-semibold">
           <Sliders size={18} className="text-[var(--brand-primary)]" />
           <h2>What-If Simulator</h2>
@@ -119,7 +119,7 @@ export function WhatIfSimulator() {
             "mt-6 p-4 rounded-xl flex items-center justify-between border",
             delta > 0 ? "bg-[var(--success)]/10 border-[var(--success)]/20" :
             delta < 0 ? "bg-[var(--danger)]/10 border-[var(--danger)]/20" :
-            "bg-[var(--bg-base)] border-[var(--border-subtle)]"
+            "bg-white/20 dark:bg-black/20 border-[var(--border-subtle)] backdrop-blur-sm"
           )}
         >
           <div className="flex items-center gap-3">
@@ -132,14 +132,14 @@ export function WhatIfSimulator() {
               )} 
             />
             <div>
-              <p className="text-xs font-semibold text-[var(--text-secondary)]">Simulated Tax Change</p>
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">Old Regime Tax Impact</p>
               <p className={cn(
                 "text-sm font-bold",
                 delta > 0 ? "text-[var(--success)]" :
                 delta < 0 ? "text-[var(--danger)]" :
                 "text-[var(--text-primary)]"
               )}>
-                {delta > 0 ? `You save ${formatRupee(Math.abs(delta))} more` : delta < 0 ? `You pay ${formatRupee(Math.abs(delta))} more` : 'No change'}
+                {delta > 0 ? `Tax drops by ${formatRupee(Math.abs(delta))}` : delta < 0 ? `Tax increases by ${formatRupee(Math.abs(delta))}` : 'No change'}
               </p>
             </div>
           </div>
@@ -164,7 +164,7 @@ function SliderControl({ label, value, max, onChange }: { label: string, value: 
     <div className="space-y-4">
       <div className="flex justify-between items-end">
         <label className="text-sm font-medium text-[var(--text-secondary)]">{label}</label>
-        <span className="text-sm font-bold text-[var(--text-primary)] font-mono bg-[var(--bg-elevated)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">{formatRupee(value)}</span>
+        <span className="text-sm font-bold text-[var(--text-primary)] font-mono bg-white/40 dark:bg-black/20 px-2 py-1 rounded-md border border-[var(--border-subtle)]">{formatRupee(value)}</span>
       </div>
       
       <Slider.Root 
@@ -174,7 +174,7 @@ function SliderControl({ label, value, max, onChange }: { label: string, value: 
         step={1000}
         onValueChange={(vals) => onChange(vals[0])}
       >
-        <Slider.Track className="bg-[var(--bg-base)] border border-[var(--border-subtle)] relative grow rounded-full h-3 overflow-hidden">
+        <Slider.Track className="bg-white/30 dark:bg-black/30 border border-[var(--border-subtle)] relative grow rounded-full h-3 overflow-hidden shadow-inner">
           <Slider.Range className="absolute bg-[var(--brand-primary)] h-full rounded-full transition-all duration-100" />
         </Slider.Track>
         <Slider.Thumb className="block w-6 h-6 bg-white border-2 border-[var(--brand-primary)] shadow-md rounded-full hover:scale-110 focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/20 transition-transform cursor-grab active:cursor-grabbing" />

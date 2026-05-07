@@ -10,6 +10,7 @@ interface GlowCardProps {
   width?: string | number;
   height?: string | number;
   customSize?: boolean; // When true, ignores size prop and uses width/height or className
+  borderRadius?: number; // Radius in pixels
 }
 
 const glowColorMap = {
@@ -33,7 +34,8 @@ const GlowCard: React.FC<GlowCardProps> = ({
   size = 'md',
   width,
   height,
-  customSize = false
+  customSize = false,
+  borderRadius = 16
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -68,7 +70,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
     const baseStyles: Record<string, string | number> = {
       '--base': base,
       '--spread': spread,
-      '--radius': '14',
+      '--radius': borderRadius,
       '--border': '3',
       '--backdrop': 'hsl(0 0% 60% / 0.12)',
       '--backup-border': 'var(--backdrop)',
@@ -90,6 +92,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
       border: 'var(--border-size) solid var(--backup-border)',
       position: 'relative',
       touchAction: 'none',
+      borderRadius: `${borderRadius}px`,
     };
 
     // Add width and height if provided
@@ -169,7 +172,6 @@ const GlowCard: React.FC<GlowCardProps> = ({
         className={`
           ${getSizeClasses()}
           ${!customSize ? 'aspect-[3/4] grid grid-rows-[1fr_auto] p-4 gap-4' : 'flex flex-col'}
-          rounded-2xl 
           relative 
           shadow-[0_1rem_2rem_-1rem_black] 
           backdrop-blur-[5px]

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Form16Extraction, Form16DerivedProfile, MissedOpportunity } from '@money-os/types'
+import { PDFParse } from 'pdf-parse'
+import { parseForm16Local } from '@/lib/form16-parser'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.5-flash'
@@ -202,15 +204,9 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
   }
 }
 
+
 export async function POST(request: NextRequest) {
   try {
-    if (!GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'Gemini API key not configured. Set GEMINI_API_KEY in your environment.' },
-        { status: 500 }
-      )
-    }
-
     const formData = await request.formData()
     const file = formData.get('file') as File | null
 
@@ -218,87 +214,108 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Convert file to base64
+    // Convert file to Buffer for PDFParse
     const arrayBuffer = await file.arrayBuffer()
-    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    const buffer = Buffer.from(arrayBuffer)
+    const base64 = buffer.toString('base64')
 
-    console.log(`[Parse] Calling Native Gemini API (${GEMINI_MODEL}) for PDF parsing...`)
+    console.log(`[Parse] Attempting local rule-based parsing first...`)
+    let extraction: Form16Extraction | null = null
+    let localErrorOccurred = false
     
-    let apiResponse;
-    let lastError;
-    
-    // Retry logic (3 attempts)
-    for (let i = 0; i < 3; i++) {
-      try {
-        apiResponse = await fetch(GEMINI_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: SYSTEM_PROMPT },
-                { text: "Extract data from this Form 16 PDF. Return only the JSON." },
-                {
-                  inline_data: {
-                    mime_type: "application/pdf",
-                    data: base64
-                  }
-                }
-              ]
-            }],
-            // generationConfig removed due to field name mismatch in API version
-          })
-        })
+    try {
+      const parser = new PDFParse({ data: buffer })
+      const pdfData = await parser.getText()
+      extraction = await parseForm16Local(pdfData.text)
+      await parser.destroy()
+      console.log(`[Parse] Local parsing successful (Confidence: ${extraction.confidence}%)`)
+    } catch (localError) {
+      console.warn(`[Parse] Local parsing failed, falling back to Gemini...`, localError)
+      localErrorOccurred = true
+    }
+
+    // If local parsing was insufficient (e.g. couldn't find gross salary) and Gemini key is available, try Gemini
+    if (!extraction || extraction.grossSalary === 0 || localErrorOccurred) {
+      if (!GEMINI_API_KEY) {
+        if (extraction && extraction.grossSalary > 0) {
+          console.warn(`[Parse] Gemini key missing, but local extraction has some data. Proceeding with local.`)
+        } else {
+          return NextResponse.json(
+            { error: 'Gemini API key not configured and local parsing failed to find key data.' },
+            { status: 500 }
+          )
+        }
+      } else {
+        console.log(`[Parse] Local results insufficient. Calling Native Gemini API (${GEMINI_MODEL}) for PDF parsing...`)
         
-        if (apiResponse.ok) break;
+        let apiResponse;
+        let lastError;
         
-        const err = await apiResponse.text();
-        console.warn(`[Parse] Gemini attempt ${i+1} failed:`, err);
-        lastError = err;
-        // Wait a bit before retry
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-      } catch (e) {
-        console.warn(`[Parse] Gemini attempt ${i+1} threw:`, e);
-        lastError = e;
+        // Retry logic (3 attempts)
+        for (let i = 0; i < 3; i++) {
+          try {
+            apiResponse = await fetch(GEMINI_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: SYSTEM_PROMPT },
+                    { text: "Extract data from this Form 16 PDF. Return only the JSON." },
+                    {
+                      inline_data: {
+                        mime_type: "application/pdf",
+                        data: base64
+                      }
+                    }
+                  ]
+                }]
+              })
+            })
+            
+            if (apiResponse.ok) break;
+            
+            const err = await apiResponse.text();
+            console.warn(`[Parse] Gemini attempt ${i+1} failed:`, err);
+            lastError = err;
+            await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+          } catch (e) {
+            console.warn(`[Parse] Gemini attempt ${i+1} threw:`, e);
+            lastError = e;
+          }
+        }
+
+        if (apiResponse && apiResponse.ok) {
+          const apiData = await apiResponse.json()
+          const rawText = apiData.candidates?.[0]?.content?.parts?.[0]?.text
+          
+          if (rawText) {
+            const cleanedText = rawText
+              .replace(/```json\n?/g, '')
+              .replace(/```\n?/g, '')
+              .trim()
+
+            try {
+              extraction = JSON.parse(cleanedText)
+              console.log(`[Parse] Gemini parsing successful.`)
+            } catch (pErr) {
+              console.error('Failed to parse Gemini response JSON:', pErr)
+            }
+          }
+        } else if (!extraction || extraction.grossSalary === 0) {
+          console.error(`[Parse] Gemini API final failure and no local fallback available.`, lastError)
+          return NextResponse.json(
+            { error: 'AI parsing failed and local parsing was insufficient. Please check document format.' },
+            { status: 502 }
+          )
+        }
       }
     }
 
-    if (!apiResponse || !apiResponse.ok) {
-      console.error(`[Parse] Gemini API final failure:`, lastError)
-      return NextResponse.json(
-        { error: `AI parsing failed after multiple attempts. ${lastError ? 'Check API key or document format.' : ''}` },
-        { status: 502 }
-      )
-    }
-
-    const apiData = await apiResponse.json()
-    const rawText = apiData.candidates?.[0]?.content?.parts?.[0]?.text
-    console.log(`[Parse] Gemini Raw Response:`, rawText?.substring(0, 200) + '...')
-
-    if (!rawText) {
-      return NextResponse.json(
-        { error: 'Gemini returned empty response.' },
-        { status: 422 }
-      )
-    }
-
-    // Clean up markdown code fences if present
-    const cleanedText = rawText
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
-
-    let extraction: Form16Extraction
-    try {
-      extraction = JSON.parse(cleanedText)
-    } catch {
-      console.error('Failed to parse Gemini response:', cleanedText.substring(0, 500))
-      return NextResponse.json(
-        { error: 'AI response was not valid JSON.' },
-        { status: 422 }
-      )
+    if (!extraction) {
+      return NextResponse.json({ error: 'Failed to extract any data from the PDF.' }, { status: 422 })
     }
 
     const derivedProfile = deriveProfileFromForm16(extraction)

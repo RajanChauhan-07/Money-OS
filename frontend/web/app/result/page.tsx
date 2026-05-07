@@ -103,33 +103,48 @@ export default function TaxResultPage() {
       </header>
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-6 pb-24 space-y-12">
-        {/* Scenario Toggle */}
+        {/* Scenario Toggle & Action */}
         <div className="flex flex-col items-center gap-4">
-           <div className="flex p-1.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-inner">
-            <button 
-              onClick={() => setActiveScenarioMode('current')}
-              className={cn(
-                "px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-300",
-                !isOptimized && !isCustom
-                  ? "bg-[var(--bg-base)] text-[var(--brand-primary)] shadow-lg scale-[1.02]" 
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-              )}
-            >
-              Current Status
-            </button>
-            <button 
-              onClick={() => setActiveScenarioMode('optimized')}
-              className={cn(
-                "px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2",
-                isOptimized 
-                  ? "bg-[var(--bg-base)] text-[var(--success)] shadow-lg scale-[1.02]" 
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-              )}
-            >
-              <Sparkles size={14} />
-              Optimized Plan
-            </button>
+          <div className="relative w-full flex flex-col md:flex-row items-center justify-center gap-4">
+            <div className="flex p-1.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-inner">
+              <button 
+                onClick={() => setActiveScenarioMode('current')}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-300",
+                  !isOptimized && !isCustom
+                    ? "bg-[var(--bg-base)] text-[var(--brand-primary)] shadow-lg scale-[1.02]" 
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                )}
+              >
+                Current Status
+              </button>
+              <button 
+                onClick={() => setActiveScenarioMode('optimized')}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2",
+                  isOptimized 
+                    ? "bg-[var(--bg-base)] text-[var(--success)] shadow-lg scale-[1.02]" 
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                )}
+              >
+                <Sparkles size={14} />
+                Optimized Plan
+              </button>
+            </div>
+
+            <div className="md:absolute md:right-0">
+              <Button 
+                size="sm" 
+                variant="brand"
+                className="shadow-lg hover:scale-[1.02] transition-all duration-300"
+                onClick={() => router.push('/plan/summary')}
+              >
+                {isOptimized ? "View Actionable Roadmap" : "Show My Investment Plan"}
+                <ArrowRight size={14} className="ml-2" />
+              </Button>
+            </div>
           </div>
+          
           <AnimatePresence mode="wait">
             {isOptimized && (
               <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-xs text-[var(--success)] font-medium bg-[var(--success-bg)] px-3 py-1 rounded-full border border-[var(--success)]/20">
@@ -180,10 +195,6 @@ export default function TaxResultPage() {
               </p>
               
               <div className={cn("mt-6 flex flex-wrap gap-3", !(taxResult.lossMeter > 0 || isOptimized) && "justify-center")}>
-                <Button size="lg" onClick={() => router.push('/plan/summary')}>
-                  {isOptimized ? "View Actionable Roadmap" : "Show My Investment Plan"}
-                  <ArrowRight size={16} className="ml-2" />
-                </Button>
                 <Button size="lg" variant="outline" onClick={() => setIsPdfModalOpen(true)}>
                   <FileText size={16} className="mr-2" />
                   View PDF

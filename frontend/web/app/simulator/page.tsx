@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Sliders, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Sliders, Info } from 'lucide-react'
 import { WhatIfSimulator, MetricCard, InsightCard } from '@/components/ui'
 import { useTaxStore } from '@/lib/stores/tax-store'
 import { formatRupee } from '@/lib/utils/format'
@@ -62,18 +62,20 @@ export default function SimulatorPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               {/* Old Regime Card */}
               <div className={cn(
-                "p-5 rounded-2xl border transition-all",
-                isOldRecommended ? "border-[var(--brand-primary)] bg-[var(--info-bg)] shadow-md" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] opacity-70"
+                "p-5 rounded-2xl border relative overflow-hidden transition-all duration-300",
+                isOldRecommended 
+                  ? "border-[var(--brand-primary)] shadow-2xl bg-gradient-to-br from-white/90 to-white/40 dark:from-white/20 dark:to-white/5 ring-1 ring-white/60 dark:ring-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.1)] backdrop-blur-[40px]" 
+                  : "border-[var(--border-subtle)] bg-white/30 dark:bg-black/40 dark:border-white/10 backdrop-blur-md opacity-70 hover:opacity-100"
               )}>
                 {isOldRecommended && (
                   <div className="text-[10px] font-bold text-[var(--brand-primary)] uppercase tracking-widest mb-2">Recommended</div>
                 )}
-                <h4 className="text-[var(--text-primary)] font-semibold mb-1">Old Regime</h4>
-                <div className="text-3xl font-bold font-mono text-[var(--text-primary)] mb-3">
+                <h4 className="text-[var(--text-primary)] font-semibold mb-1 relative z-10">Old Regime</h4>
+                <div className="text-3xl font-bold font-mono text-[var(--text-primary)] mb-3 relative z-10">
                   {formatRupee(oldTax)}
                 </div>
                 {isOldRecommended && oldSavings > 0 && (
-                  <p className="text-xs text-[var(--success)] font-semibold bg-[var(--success)]/10 inline-block px-2 py-1 rounded">
+                  <p className="text-xs text-[var(--success)] font-semibold bg-[var(--success)]/10 inline-block px-2 py-1 rounded relative z-10">
                     Saves {formatRupee(oldSavings)}
                   </p>
                 )}
@@ -81,18 +83,20 @@ export default function SimulatorPage() {
 
               {/* New Regime Card */}
               <div className={cn(
-                "p-5 rounded-2xl border transition-all",
-                !isOldRecommended ? "border-[var(--brand-primary)] bg-[var(--info-bg)] shadow-md" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] opacity-70"
+                "p-5 rounded-2xl border relative overflow-hidden transition-all duration-300",
+                !isOldRecommended 
+                  ? "border-[var(--brand-primary)] shadow-2xl bg-gradient-to-br from-white/90 to-white/40 dark:from-white/20 dark:to-white/5 ring-1 ring-white/60 dark:ring-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.1)] backdrop-blur-[40px]" 
+                  : "border-[var(--border-subtle)] bg-white/30 dark:bg-black/40 dark:border-white/10 backdrop-blur-md opacity-70 hover:opacity-100"
               )}>
                 {!isOldRecommended && (
                   <div className="text-[10px] font-bold text-[var(--brand-primary)] uppercase tracking-widest mb-2">Recommended</div>
                 )}
-                <h4 className="text-[var(--text-primary)] font-semibold mb-1">New Regime</h4>
-                <div className="text-3xl font-bold font-mono text-[var(--text-primary)] mb-3">
+                <h4 className="text-[var(--text-primary)] font-semibold mb-1 relative z-10">New Regime</h4>
+                <div className="text-3xl font-bold font-mono text-[var(--text-primary)] mb-3 relative z-10">
                   {formatRupee(newTax)}
                 </div>
                 {!isOldRecommended && newSavings > 0 && (
-                  <p className="text-xs text-[var(--success)] font-semibold bg-[var(--success)]/10 inline-block px-2 py-1 rounded">
+                  <p className="text-xs text-[var(--success)] font-semibold bg-[var(--success)]/10 inline-block px-2 py-1 rounded relative z-10">
                     Saves {formatRupee(newSavings)}
                   </p>
                 )}
@@ -100,22 +104,24 @@ export default function SimulatorPage() {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-4">Key Metrics</h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <MetricCard
-                label="Effective Tax Rate"
-                value={`${((currentResult.recommendedRegime === 'old' ? currentResult.old.totalTax : currentResult.new.totalTax) / currentResult.old.grossIncome * 100).toFixed(1)}%`}
-                subValue={`Of your ₹${(currentResult.old.grossIncome / 100000).toFixed(1)}L income`}
-              />
-              <MetricCard
-                label="Annual Take-Home"
-                value={formatRupee(currentResult.recommendedRegime === 'old' ? currentResult.old.annualTakeHome : currentResult.new.annualTakeHome)}
-                subValue="After all taxes"
-                trend="up"
-              />
+          {/* Educational Note */}
+          <div className="p-5 rounded-2xl bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-[var(--border-subtle)] dark:border-white/5 mt-4 shadow-sm">
+            <h3 className="text-[13px] font-bold text-[var(--brand-primary)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Info size={14} /> How this works
+            </h3>
+            <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
+              <p>
+                This simulator helps you discover if investing more money can lower your final tax bill. The sliders on the left represent optional tax-saving investments you can make (like ELSS funds, PPF, or Health Insurance).
+              </p>
+              <p>
+                <strong className="text-[var(--text-primary)]">The Catch:</strong> These investments only reduce your taxes if you choose the <strong>Old Regime</strong>. The New Regime offers lower baseline rates but completely ignores these investments.
+              </p>
+              <p>
+                <strong className="text-[var(--text-primary)]">Your Goal:</strong> Move the sliders to see if you can drive the Old Regime tax lower than the New Regime tax. If the Old Regime becomes cheaper, the recommendation will flip, and any additional money you invest is actively saving you taxes!
+              </p>
             </div>
           </div>
+
         </div>
       </main>
     </div>
