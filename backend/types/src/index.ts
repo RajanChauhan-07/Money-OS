@@ -33,18 +33,24 @@ export interface SalaryStructure {
   hra: number               // monthly HRA component from employer
   lta: number               // monthly LTA component
   specialAllowance: number  // monthly
-  otherAllowances: number   // monthly
+  otherAllowancesMonthly: number // monthly (fuel, telephone, etc)
+  bonusAnnual: number       // annual performance bonus/incentive
   isMetroCity: boolean
   cityName: string
   monthlyRent: number       // actual rent paid per month (0 if not renting)
 }
 
 export interface EmployerDetails {
-  epfEmployeePercent: number   // usually 12
-  epfEmployerPercent: number   // usually 12
-  hasEmployerNPS: boolean
-  employerNPSPercent: number   // % of basic contributed by employer
   companyName: string
+  employerType: 'Government' | 'PSU' | 'Private'
+  isEPFApplicable: boolean
+  epfEmployeeMonthly: number   // monthly deduction from payslip
+  epfEmployerMonthly: number   // monthly contribution by employer (optional)
+  epfEmployeePercent: number   // usually 12 (advanced)
+  epfEmployerPercent: number   // usually 12 (advanced)
+  hasEmployerNPS: boolean
+  employerNPSMonthly: number   // monthly NPS contribution by employer (80CCD2)
+  employerNPSPercent: number   // % of basic contributed by employer
 }
 
 // ── Life Situation ───────────────────────────
@@ -55,6 +61,7 @@ export interface LifeSituation {
   homeLoanOutstanding: number
   homeLoanInterestAnnual: number    // for Section 24b
   homeLoanPrincipalAnnual: number   // for 80C
+  propertyType: 'Self-occupied' | 'Let-out' | 'Under construction'
   dependentChildren: number
   hasSeniorParents: boolean
   parentAge: number
@@ -94,6 +101,8 @@ export interface ExistingInvestments {
   licPremiumAnnual: number
   elssAnnual: number
   nscAnnual: number
+  taxSavingFDAnnual: number
+  scssAnnual: number
   ssyAnnual: number
   tuitionFees: number
   epfEmployee: number       // Annual EPF contribution (auto-deducted from salary)

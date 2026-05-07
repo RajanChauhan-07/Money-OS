@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, X, FileText, CheckCircle2, Shield, Loader2, Info } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle2, Shield, Loader2, Info, ArrowLeft } from 'lucide-react'
 import { useTaxStore } from '@/lib/stores/tax-store'
 import type { UploadState } from '@/lib/stores/tax-store'
 import { cn } from '@/lib/utils'
@@ -123,10 +123,19 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen flex flex-col items-center relative z-20">
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 pt-[72px] pb-24">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-4">
-            Upload your Form 16
-          </h1>
+        <div className="mb-12">
+          <button
+            onClick={() => router.push('/')}
+            className="group flex items-center gap-2 px-4 py-2 -ml-4 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Home
+          </button>
+          <div className="text-center max-w-2xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-4">
+              Upload your Form 16
+            </h1>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">

@@ -81,16 +81,22 @@ export interface Form16DerivedProfile {
     hra: number // monthly
     lta: number // monthly
     specialAllowance: number // monthly
-    otherAllowances: number // monthly
+    otherAllowancesMonthly: number // monthly
+    bonusAnnual: number // annual
     isMetroCity: boolean
     cityName: string
     monthlyRent: number
   }
   employer: {
     companyName: string
+    employerType: 'Government' | 'PSU' | 'Private'
+    isEPFApplicable: boolean
+    epfEmployeeMonthly: number
+    epfEmployerMonthly: number
     epfEmployeePercent: number
     epfEmployerPercent: number
     hasEmployerNPS: boolean
+    employerNPSMonthly: number
     employerNPSPercent: number
   }
   life: {
@@ -98,6 +104,7 @@ export interface Form16DerivedProfile {
     hasHomeLoan: boolean
     homeLoanInterestAnnual: number
     homeLoanPrincipalAnnual: number
+    propertyType: 'Self-occupied' | 'Let-out' | 'Under construction'
     selfHealthPremium: number
     familyHealthPremium: number
     parentHealthPremium: number
@@ -123,6 +130,8 @@ export interface Form16DerivedProfile {
     licPremiumAnnual: number
     elssAnnual: number
     nscAnnual: number
+    taxSavingFDAnnual: number
+    scssAnnual: number
     ssyAnnual: number
     tuitionFees: number
     epfEmployee: number

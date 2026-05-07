@@ -56,6 +56,8 @@ export function computeDeductions(input: TaxInput): {
     (investments.licPremiumAnnual || 0) +
     (investments.elssAnnual || 0) +
     (investments.nscAnnual || 0) +
+    (investments.taxSavingFDAnnual || 0) +
+    (investments.scssAnnual || 0) +
     (investments.ssyAnnual || 0) +
     (investments.tuitionFees || 0) +
     (investments.epfEmployee || 0) +
@@ -75,15 +77,19 @@ export function computeDeductions(input: TaxInput): {
 
   // ── Section 80CCD(2) — Employer NPS ──────────────────────────────────
   let section80CCD2 = 0
-  if (employer.hasEmployerNPS && employer.employerNPSPercent > 0 && structure.basicSalary > 0) {
+  if (employer.hasEmployerNPS && structure.basicSalary > 0) {
     const annualBasic = structure.basicSalary * 12
-    const employerContribution = annualBasic * (employer.employerNPSPercent / 100)
+    const employerContribution = employer.employerNPSMonthly 
+      ? employer.employerNPSMonthly * 12 
+      : annualBasic * ((employer.employerNPSPercent || 0) / 100)
+    
     const maxAllowed = annualBasic * limits.section80CCD2_pct
     section80CCD2 = Math.min(employerContribution, maxAllowed)
   }
 
   // ── Section 24b — Home Loan Interest ──────────────────────────────────
-  const section24b = Math.min(life.homeLoanInterestAnnual || 0, limits.section24b)
+  const interestCap = life.propertyType === 'Let-out' ? limits.section24b_letout : limits.section24b
+  const section24b = life.propertyType === 'Under construction' ? 0 : Math.min(life.homeLoanInterestAnnual || 0, interestCap)
 
   // ── Section 80DD — Disabled Dependent ─────────────────────────────────
   let section80DD = 0
@@ -421,7 +427,8 @@ function buildAuditTrail(
 
 // ── Main: Compute Old Regime ───────────────────────────────────────────────
 export function computeOldRegime(input: TaxInput): RegimeResult {
-  const gross = input.salary.annualCTC
+  const { salary, structure } = input
+  const gross = salary.annualCTC + (structure.bonusAnnual || 0) + ((structure.otherAllowancesMonthly || 0) * 12)
   const ageCategory: AgeCategory = input.ageCategory || 'below60'
 
   const { deductions, breakdown } = computeDeductions(input)

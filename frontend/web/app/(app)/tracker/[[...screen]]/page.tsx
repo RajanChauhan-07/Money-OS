@@ -9,10 +9,11 @@ export async function generateMetadata({
   params: Promise<{ screen?: string[] }>
 }): Promise<Metadata> {
   const { screen: slugParts } = await params
-  const screen = getAppScreen('tracker', slugParts?.[0])
-
+  const slug = slugParts?.[0]
+  if (slug === 'portfolio') return { title: 'Portfolio Tracker | Money OS', description: 'Track your investment portfolio' }
+  if (slug === 'goals') return { title: 'Goals Tracker | Money OS', description: 'Track your financial goals' }
+  const screen = getAppScreen('tracker', slug)
   if (!screen) return { title: 'Not Found' }
-
   return { title: screen.title, description: screen.description }
 }
 
@@ -22,9 +23,16 @@ export default async function TrackerPage({
   params: Promise<{ screen?: string[] }>
 }) {
   const { screen: slugParts } = await params
-  const screen = getAppScreen('tracker', slugParts?.[0])
+  const slug = slugParts?.[0]
 
+  // These are handled by dedicated page.tsx in their own folders
+  // This catch-all only handles remaining tracker routes
+  if (!slug || slug === 'calendar') {
+    return <ComingSoon title="Calendar" description="Calendar integration is coming soon." />
+  }
+
+  const screen = getAppScreen('tracker', slug)
   if (!screen) notFound()
 
-  return <ComingSoon title="Calendar & Goals" description="Goal tracking and calendar integrations are in development." />
+  return <ComingSoon title={screen.title} description={screen.description ?? ''} />
 }

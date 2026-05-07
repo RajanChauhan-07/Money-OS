@@ -48,7 +48,7 @@ function NumberInput({
           value={value || ''}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
           className={cn(
-            "w-full h-11 rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] pr-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20",
+            "w-full h-11 rounded-xl border border-white/10 bg-white/[0.03] pr-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary)]/20",
             prefix ? "pl-8" : "pl-3"
           )}
         />
@@ -79,12 +79,14 @@ function ToggleInput({
         type="button"
         onClick={() => onChange(!value)}
         className={cn(
-          "relative h-7 w-12 rounded-full border transition-all shrink-0",
-          value ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]" : "border-[var(--border-default)] bg-[var(--bg-elevated)]"
+          "relative h-7 w-12 rounded-full border transition-all duration-300 shrink-0",
+          value 
+            ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary)]" 
+            : "border-white/10 bg-white/5"
         )}
       >
         <span className={cn(
-          "absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-all",
+          "absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-all duration-300",
           value ? "left-[24px]" : "left-0.5"
         )} />
       </button>
@@ -108,7 +110,7 @@ function TextInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+        className="w-full h-11 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary)]/20"
       />
     </div>
   )
@@ -131,10 +133,10 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+        className="w-full h-11 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary)]/20"
       >
         {options.map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
+          <option key={opt} value={opt} className="bg-zinc-900 text-white">{opt}</option>
         ))}
       </select>
     </div>
@@ -156,15 +158,26 @@ type StepKey = (typeof STEPS)[number]['key']
 const defaultProfile: Form16DerivedProfile = {
   salary: { annualCTC: 0, inHandMonthly: 0, variablePayPercent: 0 },
   structure: {
-    basicSalary: 0, hra: 0, lta: 0, specialAllowance: 0, otherAllowances: 0,
+    basicSalary: 0, hra: 0, lta: 0, specialAllowance: 0, 
+    otherAllowancesMonthly: 0, bonusAnnual: 0,
     isMetroCity: true, cityName: 'Mumbai', monthlyRent: 0,
   },
   employer: {
-    companyName: '', epfEmployeePercent: 12, epfEmployerPercent: 12,
-    hasEmployerNPS: false, employerNPSPercent: 0,
+    companyName: '', 
+    employerType: 'Private',
+    isEPFApplicable: true,
+    epfEmployeeMonthly: 0,
+    epfEmployerMonthly: 0,
+    epfEmployeePercent: 12, 
+    epfEmployerPercent: 12,
+    hasEmployerNPS: false, 
+    employerNPSMonthly: 0,
+    employerNPSPercent: 0,
   },
   life: {
-    isRenting: false, hasHomeLoan: false, homeLoanInterestAnnual: 0, homeLoanPrincipalAnnual: 0,
+    isRenting: false, hasHomeLoan: false, 
+    homeLoanInterestAnnual: 0, homeLoanPrincipalAnnual: 0,
+    propertyType: 'Self-occupied',
     selfHealthPremium: 0, familyHealthPremium: 0, parentHealthPremium: 0,
     hasSeniorParents: false, dependentChildren: 0,
     hasDisabledDependent: false, disabilityType: 'normal', medicalTreatmentExpense: 0,
@@ -214,7 +227,6 @@ export default function SetupPage() {
         ...prev,
         salary: { ...prev.salary, annualCTC: ctc, inHandMonthly: Math.round(ctc * 0.72 / 12) },
         structure: { ...prev.structure, basicSalary: basic, hra: hra, specialAllowance: Math.max(0, special) },
-        investments: { ...prev.investments, epfEmployee: Math.round(basic * 12 * 0.12) },
       }))
     }
   }
@@ -224,6 +236,16 @@ export default function SetupPage() {
       handleCalculate()
     } else {
       setCurrentStep(prev => prev + 1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep === 0) {
+      router.push('/')
+    } else {
+      setCurrentStep(prev => prev - 1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -307,7 +329,14 @@ export default function SetupPage() {
                   label="In-hand per month"
                   value={profile.salary.inHandMonthly}
                   onChange={(v) => updateSalary('inHandMonthly', v)}
-                  hint="After TDS, PF, and other deductions"
+                  hint="Your monthly take-home after tax/PF"
+                />
+                <SelectInput
+                  label="Age category"
+                  value={profile.ageCategory || 'below60'}
+                  onChange={(v) => setProfile({ ...profile, ageCategory: v as any })}
+                  options={['below60', 'senior', 'superSenior']}
+                  hint="Senior: 60+, Super Senior: 80+"
                 />
                 <NumberInput
                   label="Monthly basic salary"
@@ -330,6 +359,18 @@ export default function SetupPage() {
                   value={profile.structure.lta}
                   onChange={(v) => updateStructure('lta', v)}
                 />
+                <NumberInput
+                  label="Other allowances (monthly)"
+                  value={profile.structure.otherAllowancesMonthly}
+                  onChange={(v) => updateStructure('otherAllowancesMonthly', v)}
+                  hint="fuel, telephone, etc."
+                />
+                <NumberInput
+                  label="Annual bonus / incentive"
+                  value={profile.structure.bonusAnnual}
+                  onChange={(v) => updateStructure('bonusAnnual', v)}
+                  hint="performance bonus, TPP"
+                />
               </div>
             )}
 
@@ -342,22 +383,42 @@ export default function SetupPage() {
                     onChange={(v) => updateEmployer('companyName', v)}
                   />
                 </div>
-                <NumberInput
-                  label="EPF employee %"
-                  value={profile.employer.epfEmployeePercent}
-                  onChange={(v) => updateEmployer('epfEmployeePercent', v)}
-                  prefix="%"
-                  hint="Usually 12%"
-                />
-                <NumberInput
-                  label="EPF employer %"
-                  value={profile.employer.epfEmployerPercent}
-                  onChange={(v) => updateEmployer('epfEmployerPercent', v)}
-                  prefix="%"
+                <SelectInput
+                  label="Employer type"
+                  value={profile.employer.employerType}
+                  onChange={(v) => updateEmployer('employerType', v)}
+                  options={['Private', 'Government', 'PSU']}
                 />
                 <div className="md:col-span-2">
                   <ToggleInput
-                    label="Employer provides NPS"
+                    label="EPF applicable"
+                    value={profile.employer.isEPFApplicable}
+                    onChange={(v) => updateEmployer('isEPFApplicable', v)}
+                    hint="Does your employer deduct EPF from your salary?"
+                  />
+                </div>
+                {profile.employer.isEPFApplicable && (
+                  <>
+                    <NumberInput
+                      label="EPF monthly deduction (₹)"
+                      value={profile.employer.epfEmployeeMonthly}
+                      onChange={(v) => {
+                        updateEmployer('epfEmployeeMonthly', v)
+                        updateInvestments('epfEmployee', v * 12)
+                      }}
+                      hint="Check your payslip"
+                    />
+                    <NumberInput
+                      label="Employer EPF monthly (₹)"
+                      value={profile.employer.epfEmployerMonthly}
+                      onChange={(v) => updateEmployer('epfEmployerMonthly', v)}
+                      hint="Optional, for reference"
+                    />
+                  </>
+                )}
+                <div className="md:col-span-2">
+                  <ToggleInput
+                    label="Employer provides NPS (80CCD2)"
                     value={profile.employer.hasEmployerNPS}
                     onChange={(v) => updateEmployer('hasEmployerNPS', v)}
                     hint="Some companies contribute to NPS under 80CCD(2)"
@@ -365,10 +426,9 @@ export default function SetupPage() {
                 </div>
                 {profile.employer.hasEmployerNPS && (
                   <NumberInput
-                    label="Employer NPS %"
-                    value={profile.employer.employerNPSPercent}
-                    onChange={(v) => updateEmployer('employerNPSPercent', v)}
-                    prefix="%"
+                    label="Monthly NPS contribution by employer (₹)"
+                    value={profile.employer.employerNPSMonthly}
+                    onChange={(v) => updateEmployer('employerNPSMonthly', v)}
                   />
                 )}
               </div>
@@ -386,9 +446,18 @@ export default function SetupPage() {
                 {profile.life.isRenting && (
                   <>
                     <NumberInput
-                      label="Monthly rent"
+                      label="Monthly rent paid (₹)"
                       value={profile.structure.monthlyRent}
                       onChange={(v) => updateStructure('monthlyRent', v)}
+                    />
+                    <SelectInput
+                      label="City type"
+                      value={profile.structure.isMetroCity ? 'Metro' : 'Non-metro'}
+                      onChange={(v) => {
+                        updateStructure('isMetroCity', v === 'Metro')
+                      }}
+                      options={['Metro', 'Non-metro']}
+                      hint="Mumbai, Delhi, Kolkata, Chennai = metro"
                     />
                     {!profile.structure.hra && (
                       <NumberInput
@@ -398,15 +467,6 @@ export default function SetupPage() {
                         hint="Claimable if you don't receive HRA"
                       />
                     )}
-                    <SelectInput
-                      label="City"
-                      value={profile.structure.cityName}
-                      onChange={(v) => {
-                        updateStructure('cityName', v)
-                        updateStructure('isMetroCity', ['Mumbai', 'Delhi', 'Kolkata', 'Chennai', 'Bengaluru', 'Hyderabad'].includes(v))
-                      }}
-                      options={['Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Other']}
-                    />
                   </>
                 )}
                 <div className="md:col-span-2">
@@ -419,37 +479,37 @@ export default function SetupPage() {
                 {profile.life.hasHomeLoan && (
                   <>
                     <NumberInput
-                      label="Annual home loan interest (Section 24b)"
+                      label="Annual interest paid (₹)"
                       value={profile.life.homeLoanInterestAnnual}
                       onChange={(v) => updateLife('homeLoanInterestAnnual', v)}
-                      hint="Max ₹2L for self-occupied property"
+                      hint="Section 24b, max ₹2L for self-occupied"
                     />
                     <NumberInput
-                      label="Annual home loan principal"
+                      label="Annual principal repaid (₹)"
                       value={profile.life.homeLoanPrincipalAnnual}
                       onChange={(v) => updateLife('homeLoanPrincipalAnnual', v)}
-                      hint="Counts under 80C"
+                      hint="Counts under 80C limit"
                     />
-                    <NumberInput
-                      label="Add'l Interest u/s 80EEA"
-                      value={profile.life.section80EEAInterest || 0}
-                      onChange={(v) => updateLife('section80EEAInterest', v)}
-                      hint="Loans sanctioned Apr 2019–Mar 2022 (up to ₹1.5L)"
+                    <SelectInput
+                      label="Property status"
+                      value={profile.life.propertyType}
+                      onChange={(v) => updateLife('propertyType', v)}
+                      options={['Self-occupied', 'Let-out', 'Under construction']}
                     />
                   </>
                 )}
                 
-                <div className="md:col-span-2 pt-4 border-t border-[var(--border-subtle)] mt-2">
+                <div className="md:col-span-2 pt-4 border-t border-white/5 mt-2">
                   <h3 className="text-sm font-medium text-[var(--text-primary)] mb-4">Other Loans</h3>
                   <div className="grid gap-5 md:grid-cols-2">
                     <NumberInput
-                      label="Education Loan Interest (80E)"
+                      label="Education loan interest (80E)"
                       value={profile.life.educationLoanInterest || 0}
                       onChange={(v) => updateLife('educationLoanInterest', v)}
                       hint="No upper limit"
                     />
                     <NumberInput
-                      label="EV Loan Interest (80EEB)"
+                      label="EV loan interest (80EEB)"
                       value={profile.life.evLoanInterest || 0}
                       onChange={(v) => updateLife('evLoanInterest', v)}
                       hint="Max ₹1.5L (loans sanctioned by Mar 2023)"
@@ -506,10 +566,11 @@ export default function SetupPage() {
                       />
                       {profile.life.hasDisabledDependent && (
                         <SelectInput
-                          label="Disability Type"
+                          label="Disability severity"
                           value={profile.life.disabilityType || 'normal'}
                           onChange={(v) => updateLife('disabilityType', v)}
                           options={['normal', 'severe']}
+                          hint="Normal = ₹75,000 | Severe = ₹1,25,000"
                         />
                       )}
                     </div>
@@ -521,10 +582,11 @@ export default function SetupPage() {
                       />
                       {profile.life.hasSelfDisability && (
                         <SelectInput
-                          label="Disability Type"
+                          label="Disability type"
                           value={profile.life.selfDisabilityType || 'normal'}
                           onChange={(v) => updateLife('selfDisabilityType', v)}
                           options={['normal', 'severe']}
+                          hint="Normal (40%+) / Severe (80%+)"
                         />
                       )}
                     </div>
@@ -542,16 +604,36 @@ export default function SetupPage() {
                   hint="Auto-deducted from salary — counts in 80C"
                 />
                 <NumberInput
+                  label="NSC (annual)"
+                  value={profile.investments.nscAnnual}
+                  onChange={(v) => updateInvestments('nscAnnual', v)}
+                  hint="National Savings Certificate"
+                />
+                <NumberInput
                   label="ELSS mutual funds (annual)"
                   value={profile.investments.elssAnnual}
                   onChange={(v) => updateInvestments('elssAnnual', v)}
                   hint="Tax-saving funds with 3-year lock-in"
                 />
                 <NumberInput
+                  label="Tax-saving FD (annual)"
+                  value={profile.investments.taxSavingFDAnnual}
+                  onChange={(v) => updateInvestments('taxSavingFDAnnual', v)}
+                  hint="5-year bank fixed deposit"
+                />
+                <NumberInput
                   label="PPF (annual)"
                   value={profile.investments.ppfAnnual}
                   onChange={(v) => updateInvestments('ppfAnnual', v)}
                 />
+                {profile.ageCategory !== 'below60' && (
+                  <NumberInput
+                    label="SCSS (annual)"
+                    value={profile.investments.scssAnnual}
+                    onChange={(v) => updateInvestments('scssAnnual', v)}
+                    hint="Senior Citizen Savings Scheme"
+                  />
+                )}
                 <NumberInput
                   label="LIC premium (annual)"
                   value={profile.investments.licPremiumAnnual}
@@ -573,27 +655,31 @@ export default function SetupPage() {
                 <div className="md:col-span-2 pt-4 border-t border-[var(--border-subtle)] mt-2">
                   <h3 className="text-sm font-medium text-[var(--text-primary)] mb-4">Other Deductions</h3>
                   <div className="grid gap-5 md:grid-cols-2">
-                    <NumberInput
-                      label="Savings Account Interest (80TTA)"
-                      value={profile.life.savingsInterest || 0}
-                      onChange={(v) => updateLife('savingsInterest', v)}
-                      hint="Up to ₹10K deduction"
-                    />
-                    <NumberInput
-                      label="Senior Deposit Interest (80TTB)"
-                      value={profile.life.depositInterest || 0}
-                      onChange={(v) => updateLife('depositInterest', v)}
-                      hint="Up to ₹50K deduction for senior citizens"
-                    />
+                    {profile.ageCategory === 'below60' ? (
+                      <NumberInput
+                        label="Savings Account Interest (80TTA)"
+                        value={profile.life.savingsInterest}
+                        onChange={(v) => updateLife('savingsInterest', v)}
+                        hint="Up to ₹10K deduction"
+                      />
+                    ) : (
+                      <NumberInput
+                        label="Senior Deposit Interest (80TTB)"
+                        value={profile.life.depositInterest}
+                        onChange={(v) => updateLife('depositInterest', v)}
+                        hint="Up to ₹50K deduction for senior citizens"
+                      />
+                    )}
+                    <div />
                     <NumberInput
                       label="Donations - 100% Eligible (80G)"
-                      value={profile.life.donations100pct || 0}
+                      value={profile.life.donations100pct}
                       onChange={(v) => updateLife('donations100pct', v)}
                       hint="E.g., PM CARES, National Relief Fund"
                     />
                     <NumberInput
                       label="Donations - 50% Eligible (80G)"
-                      value={profile.life.donations50pct || 0}
+                      value={profile.life.donations50pct}
                       onChange={(v) => updateLife('donations50pct', v)}
                       hint="Other approved charitable institutions"
                     />
@@ -604,6 +690,8 @@ export default function SetupPage() {
                 {(() => {
                   const total80C = profile.investments.epfEmployee + profile.investments.elssAnnual +
                     profile.investments.ppfAnnual + profile.investments.licPremiumAnnual +
+                    profile.investments.nscAnnual + profile.investments.taxSavingFDAnnual +
+                    (profile.investments.scssAnnual || 0) + profile.investments.ssyAnnual +
                     profile.investments.tuitionFees + profile.investments.otherSection80C +
                     (profile.life.homeLoanPrincipalAnnual || 0)
                   const pct = Math.min(100, Math.round((total80C / 150000) * 100))
@@ -635,20 +723,28 @@ export default function SetupPage() {
 
       {/* Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-base)]/80 backdrop-blur-md border-t border-[var(--border-subtle)] p-4 z-40">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <p className="text-sm text-[var(--text-tertiary)] hidden sm:block">
-            Step {currentStep + 1} of {STEPS.length}
-          </p>
-          <div className="flex gap-3 ml-auto">
-
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {currentStep === 0 ? 'Home' : 'Back'}
+            </button>
+            <div className="h-4 w-px bg-white/10 hidden md:block" />
+            <p className="text-sm text-[var(--text-secondary)] hidden md:block">
+              {step.description}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
             <Button
               size="lg"
               onClick={handleNext}
-              isLoading={isComputing}
-              disabled={isComputing || (currentStep === 0 && profile.salary.annualCTC === 0)}
-              className="px-8 group"
+              className="px-10 group"
             >
-              {isLast ? (
+              {currentStep === STEPS.length - 1 ? (
                 <>
                   <Sparkles size={16} className="mr-2" />
                   Calculate & Compare

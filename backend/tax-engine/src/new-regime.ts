@@ -17,8 +17,8 @@ import { FY_2025_26 } from './slabs'
 import { computeTaxFromSlabs, calculateSurcharge, calculate87ARebate, roundTax, getMarginalRate, formatAuditAmount } from './utils'
 
 export function computeNewRegime(input: TaxInput): RegimeResult {
-  const gross = input.salary.annualCTC
-  const { structure, employer } = input
+  const { salary, structure, employer } = input
+  const gross = salary.annualCTC + (structure.bonusAnnual || 0) + ((structure.otherAllowancesMonthly || 0) * 12)
   const limits = FY_2025_26.deductionLimits
 
   // Standard Deduction — only allowed deduction for employees (₹75,000)
@@ -26,9 +26,12 @@ export function computeNewRegime(input: TaxInput): RegimeResult {
 
   // 80CCD(2) — Employer NPS ONLY (capped at 14% of basic salary)
   let employer80CCD2 = 0
-  if (employer.hasEmployerNPS && employer.employerNPSPercent > 0 && structure.basicSalary > 0) {
+  if (employer.hasEmployerNPS && structure.basicSalary > 0) {
     const annualBasic = structure.basicSalary * 12
-    const employerContribution = annualBasic * (employer.employerNPSPercent / 100)
+    const employerContribution = employer.employerNPSMonthly 
+      ? employer.employerNPSMonthly * 12 
+      : annualBasic * ((employer.employerNPSPercent || 0) / 100)
+    
     const maxAllowed = annualBasic * limits.section80CCD2_pct // 14% of basic
     employer80CCD2 = Math.min(employerContribution, maxAllowed)
   }

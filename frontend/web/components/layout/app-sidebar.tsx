@@ -28,7 +28,7 @@ const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'My Tax Plan', href: '/tax/result', icon: Receipt },
   { label: 'Summary', href: '/plan/summary', icon: FileText },
-  { label: 'Allocation', href: '/plan/80c', icon: PieChart },
+  { label: 'Allocation', href: '/plan/allocation', icon: PieChart },
   { label: 'Cash Flow', href: '/plan/cashflow', icon: TrendingUp },
   { label: 'Invest', href: '/invest', icon: Banknote },
   { label: 'Portfolio', href: '/tracker/portfolio', icon: BarChart3 },

@@ -124,21 +124,21 @@ export function validateTaxInput(input: TaxInput): ValidationResult {
       suggestion: 'Enter your annual home loan interest (for Section 24b) and principal (for 80C).',
     })
   }
-  if (life.homeLoanInterestAnnual > 200000) {
+  if (life.homeLoanInterestAnnual > 200000 && life.propertyType !== 'Let-out') {
     issues.push({
       field: 'life.homeLoanInterestAnnual',
       severity: 'info',
-      message: `Home loan interest of ₹${life.homeLoanInterestAnnual.toLocaleString('en-IN')} exceeds ₹2L limit.`,
-      suggestion: 'Only ₹2,00,000 is deductible under Section 24b for self-occupied property.',
+      message: `Home loan interest of ₹${life.homeLoanInterestAnnual.toLocaleString('en-IN')} exceeds ₹2L limit for self-occupied property.`,
+      suggestion: 'Only ₹2,00,000 is deductible under Section 24b unless the property is let-out.',
     })
   }
 
   // ── Employer NPS ──────────────────────────────────────────────────────
-  if (employer.hasEmployerNPS && employer.employerNPSPercent === 0) {
+  if (employer.hasEmployerNPS && employer.employerNPSPercent === 0 && (employer.employerNPSMonthly || 0) === 0) {
     issues.push({
-      field: 'employer.employerNPSPercent',
+      field: 'employer.employerNPSMonthly',
       severity: 'warning',
-      message: 'Employer NPS is enabled but percentage is 0%.',
+      message: 'Employer NPS is enabled but no amount or percentage is entered.',
     })
   }
   if (employer.employerNPSPercent > 14) {

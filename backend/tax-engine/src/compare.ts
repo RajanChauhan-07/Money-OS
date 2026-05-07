@@ -129,6 +129,8 @@ function buildZeroDeductionsInput(input: TaxInput): TaxInput {
       licPremiumAnnual: 0,
       elssAnnual: 0,
       nscAnnual: 0,
+      taxSavingFDAnnual: 0,
+      scssAnnual: 0,
       ssyAnnual: 0,
       tuitionFees: 0,
       epfEmployee: 0,
@@ -199,6 +201,8 @@ export function runWhatIfScenario(input: TaxInput, whatIf: WhatIfState): TaxComp
         (input.investments.ppfAnnual || 0) +
         (input.investments.licPremiumAnnual || 0) +
         (input.investments.nscAnnual || 0) +
+        (input.investments.taxSavingFDAnnual || 0) +
+        (input.investments.scssAnnual || 0) +
         (input.investments.tuitionFees || 0) +
         (input.investments.otherSection80C || 0)
       )),
