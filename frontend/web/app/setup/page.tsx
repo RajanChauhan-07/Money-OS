@@ -371,6 +371,12 @@ export default function SetupPage() {
                   onChange={(v) => updateStructure('bonusAnnual', v)}
                   hint="performance bonus, TPP"
                 />
+                <NumberInput
+                  label="Professional Tax (monthly)"
+                  value={profile.structure.professionalTaxMonthly}
+                  onChange={(v) => updateStructure('professionalTaxMonthly', v)}
+                  hint="Usually ₹200"
+                />
               </div>
             )}
 

@@ -362,6 +362,7 @@ export default function ReviewPage() {
             <NumberInput label="Monthly LTA" value={profile.structure.lta} onChange={(v) => updateStructure('lta', v)} />
             <NumberInput label="Other allowances (monthly)" value={profile.structure.otherAllowancesMonthly} onChange={(v) => updateStructure('otherAllowancesMonthly', v)} hint="fuel, telephone, etc." />
             <NumberInput label="Annual bonus / incentive" value={profile.structure.bonusAnnual} onChange={(v) => updateStructure('bonusAnnual', v)} hint="performance bonus, TPP" />
+            <NumberInput label="Professional Tax (monthly)" value={profile.structure.professionalTaxMonthly} onChange={(v) => updateStructure('professionalTaxMonthly', v)} hint="Usually ₹200" />
           </SectionCard>
 
           <SectionCard icon={Building2} title="Employer" description="Company and EPF details">

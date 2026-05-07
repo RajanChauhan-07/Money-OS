@@ -18,6 +18,14 @@ function rupees(n: number): string {
   return `₹${Math.round(n)}`
 }
 
+function formatPrecise(n: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(n)
+}
+
 export function generateInsights(input: TaxInput, result: TaxComparisonResult): Insight[] {
   const insights: Insight[] = []
   const { deductions } = result
@@ -50,11 +58,11 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       severity: gap80C === limits.section80C ? 'danger' : 'warning',
       title: `You used ${rupees(deductions.section80C)} of ${rupees(limits.section80C)} under Section 80C`,
       description: gap80C === limits.section80C
-        ? `You have made no 80C investments. Investing ${rupees(limits.section80C)} in ELSS, PPF, or EPF can save you up to ${rupees(taxSaved)} in tax.`
-        : `You have ${rupees(gap80C)} of unused 80C headroom. Investing this amount can save you ${rupees(taxSaved)} more in tax.`,
+        ? `You have made no 80C investments. Investing ${rupees(limits.section80C)} in ELSS, PPF, or EPF can save you up to ${rupees(taxSaved)} in tax (Old Regime only).`
+        : `You have ${rupees(gap80C)} of unused 80C headroom. Investing this amount can save you ${rupees(taxSaved)} more in tax (Old Regime only).`,
       actionText: 'Start an ELSS SIP →',
       actionRoute: '/plan/summary',
-      potentialSaving: taxSaved,
+      potentialSaving: result.recommendedRegime === 'old' ? taxSaved : 0,
       icon: 'PiggyBank',
     })
   } else if (deductions.section80C >= limits.section80C) {
@@ -63,7 +71,9 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       section: '80C',
       severity: 'success',
       title: '80C fully utilized — excellent!',
-      description: `You've invested the maximum ₹1,50,000 under Section 80C, saving you ${rupees(Math.round(limits.section80C * marginalRate * 1.04))} in tax.`,
+      description: result.recommendedRegime === 'old' 
+        ? `You've invested the maximum ₹1,50,000 under Section 80C, saving you ${rupees(Math.round(limits.section80C * marginalRate * 1.04))} in tax.`
+        : `You've maxed out Section 80C. While this doesn't affect New Regime tax, it builds your long-term wealth.`,
       potentialSaving: 0,
       icon: 'CheckCircle',
     })
@@ -91,8 +101,8 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       id: 'hra-not-claimed',
       section: 'HRA',
       severity: 'info',
-      title: `You have HRA of ${rupees(input.structure.hra * 12)} but aren't claiming exemption`,
-      description: `Your employer pays ${rupees(input.structure.hra)}/month as HRA. If you pay rent, you can claim HRA exemption and significantly reduce your old regime tax.`,
+      title: `You have HRA of ${formatPrecise(input.structure.hra * 12)} but aren't claiming exemption`,
+      description: `Your employer pays ${formatPrecise(input.structure.hra)}/month as HRA. If you pay rent, you can claim HRA exemption and significantly reduce your old regime tax.`,
       actionText: 'Update rent details →',
       actionRoute: '/review',
       potentialSaving: 0, // variable — depends on rent
@@ -106,7 +116,7 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       id: 'hra-claimed',
       section: 'HRA',
       severity: 'success',
-      title: `HRA exemption of ${rupees(deductions.hraExemption)} is saving you ${rupees(taxSaved)}`,
+      title: `HRA exemption of ${formatPrecise(deductions.hraExemption)} is saving you ${rupees(taxSaved)}`,
       description: `Your HRA exemption is correctly calculated based on your rent and city. This is a major reason why old regime may be better for you.`,
       potentialSaving: 0,
       icon: 'Home',

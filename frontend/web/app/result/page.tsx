@@ -185,7 +185,9 @@ export default function TaxResultPage() {
               </div>
               <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
                 {isOptimized 
-                  ? `Save up to ${formatRupee(taxResult.savingsWithRecommended)} more.`
+                  ? (scenarios.current.lossMeter > 0 
+                    ? `Save up to ${formatRupee(scenarios.current.lossMeter)} more.` 
+                    : 'You are already tax-optimized!')
                   : (taxResult.recommendedRegime === 'old' ? 'Old regime saves you more.' : 'New regime is better for you.')}
               </h1>
               <p className={cn("mt-3 text-base leading-relaxed text-[var(--text-secondary)]", !(taxResult.lossMeter > 0 || isOptimized) && "max-w-2xl mx-auto")}>
@@ -233,10 +235,12 @@ export default function TaxResultPage() {
                       <div>
                         <p className="text-sm font-bold text-[var(--success)] uppercase tracking-wide">Projected Benefit</p>
                         <p className="mt-1 text-3xl font-bold font-mono text-[var(--text-primary)]">
-                          {formatRupee(taxResult.lossMeter)}
+                          {formatRupee(isOptimized ? scenarios.current.lossMeter : taxResult.lossMeter)}
                         </p>
                         <p className="mt-1 text-xs text-[var(--success)]/90 font-medium">
-                          Total savings if you execute the optimized plan.
+                          {isOptimized 
+                            ? "Total savings if you execute the optimized plan." 
+                            : "Potential annual savings being missed currently."}
                         </p>
                       </div>
                     </div>
@@ -254,7 +258,7 @@ export default function TaxResultPage() {
             value={formatRupee(Math.round(recommended.totalTax))}
             subValue={`incl. 4% cess`}
             trend="down"
-            trendLabel="Optimized"
+            trendLabel={isOptimized ? "New Regime" : (recommended.regime === 'old' ? "Old Regime" : "New Regime")}
             accent={isOptimized ? "success" : "brand"}
           />
           <MetricCard

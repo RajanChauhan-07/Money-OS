@@ -38,6 +38,7 @@ export interface SalaryStructure {
   isMetroCity: boolean
   cityName: string
   monthlyRent: number       // actual rent paid per month (0 if not renting)
+  professionalTaxMonthly: number // monthly professional tax deduction
 }
 
 export interface EmployerDetails {

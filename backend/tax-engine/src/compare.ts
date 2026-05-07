@@ -50,13 +50,16 @@ function buildComparison(
     ? Math.max(0, currentBestTax - absoluteMinTax)
     : 0
 
-  // Tax Efficiency Score (0-100)
-  let taxEfficiencyScore = 100
-  if (taxWithZeroDeds !== undefined && absoluteMinTax !== undefined) {
-    const maxPossibleSaving = Math.max(1, taxWithZeroDeds - absoluteMinTax)
-    const currentSaving = taxWithZeroDeds - currentBestTax
-    taxEfficiencyScore = Math.min(100, Math.max(0, Math.round((currentSaving / maxPossibleSaving) * 100)))
-  }
+  // Tax Efficiency Score (0-100) — Updated to (Actual/Max Potential) formula
+  // Max Potential for FY 2025-26: 1.5L(80C) + 50K(NPS) + 50K(80D) + 75K(StdDed) = 3,25,000
+  const maxPossibleDeductions = 150000 + 50000 + 50000 + 75000
+  const actualDeductionsUsed = Math.min(maxPossibleDeductions, 
+    (deductions.section80C || 0) + 
+    (deductions.section80CCD1B || 0) + 
+    (deductions.section80D_self + deductions.section80D_parents || 0) + 
+    (deductions.standardDeduction || 0)
+  )
+  const taxEfficiencyScore = Math.min(100, Math.max(0, Math.round((actualDeductionsUsed / maxPossibleDeductions) * 100)))
 
   // Build switch strategy message
   const switchStrategy = buildSwitchStrategy(old, newR, savings, input)

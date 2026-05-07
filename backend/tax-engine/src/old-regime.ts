@@ -37,8 +37,8 @@ export function computeLTAExemption(input: TaxInput): number {
 }
 
 // ── Step 2: Professional Tax ───────────────────────────────────────────────
-export function computeProfessionalTax(): number {
-  return FY_2025_26.deductionLimits.professionalTax
+export function computeProfessionalTax(input: TaxInput): number {
+  return (input.structure.professionalTaxMonthly || 0) * 12
 }
 
 // ── Step 3: All Chapter VI-A Deductions ───────────────────────────────────
@@ -160,7 +160,7 @@ export function computeDeductions(input: TaxInput): {
   const standardDeduction = FY_2025_26.old.standardDeduction
 
   // ── Professional Tax ─────────────────────────────────────────────────
-  const professionalTax = computeProfessionalTax()
+  const professionalTax = computeProfessionalTax(input)
 
   const deductions: TaxDeductions = {
     section80C,
