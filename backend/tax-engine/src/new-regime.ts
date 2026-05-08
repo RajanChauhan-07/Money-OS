@@ -18,7 +18,16 @@ import { computeTaxFromSlabs, calculateSurcharge, calculate87ARebate, roundTax, 
 
 export function computeNewRegime(input: TaxInput): RegimeResult {
   const { salary, structure, employer } = input
-  const gross = salary.annualCTC + (structure.bonusAnnual || 0) + ((structure.otherAllowancesMonthly || 0) * 12)
+  const annualBasic = structure.basicSalary * 12
+  const annualHRA = structure.hra * 12
+  const annualLTA = (structure.lta || 0) * 12
+  const annualSpecial = (structure.specialAllowance || 0) * 12
+  const annualOther = (structure.otherAllowancesMonthly || 0) * 12
+  const annualBonus = (structure.bonusAnnual || 0)
+
+  // Gross = MAX(Annual CTC, Sum of components) to prevent double counting
+  const componentSum = annualBasic + annualHRA + annualLTA + annualSpecial + annualOther + annualBonus
+  const gross = Math.max(salary.annualCTC, componentSum)
   const limits = FY_2025_26.deductionLimits
 
   // Standard Deduction — only allowed deduction for employees (₹75,000)

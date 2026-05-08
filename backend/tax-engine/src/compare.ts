@@ -80,7 +80,7 @@ function buildComparison(
   const reasonText = reasons.length > 0 ? reasons.join(', ') : 'your overall deductions'
   const reasoning = recommended === 'old'
     ? `Old Regime saves you ${rupees(savings)} because your ${reasonText} exceed the flat benefit of the New Regime's lower slab rates.`
-    : `New Regime saves you ${rupees(savings)}. Your current deductions (${rupees(ded.section80C + ded.hraExemption + ded.section80CCD1B)}) are not enough to beat the lower slab rates.`
+    : `New Regime saves you ${rupees(savings)}. Your current deductions (${rupees(old.totalDeductions)}) are not enough to beat the lower slab rates.`
 
   const result: Omit<TaxComparisonResult, 'insights' | 'recommendations'> = {
     old,

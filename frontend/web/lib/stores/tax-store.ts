@@ -216,6 +216,7 @@ export const useTaxStore = create<TaxStore>()(
           isMetroCity: profile.structure.isMetroCity,
           cityName: profile.structure.cityName,
           monthlyRent: profile.structure.monthlyRent,
+          professionalTaxMonthly: profile.structure.professionalTaxMonthly,
         }
         const employer: EmployerDetails = {
           companyName: profile.employer.companyName,

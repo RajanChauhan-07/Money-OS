@@ -428,7 +428,16 @@ function buildAuditTrail(
 // ── Main: Compute Old Regime ───────────────────────────────────────────────
 export function computeOldRegime(input: TaxInput): RegimeResult {
   const { salary, structure } = input
-  const gross = salary.annualCTC + (structure.bonusAnnual || 0) + ((structure.otherAllowancesMonthly || 0) * 12)
+  const annualBasic = structure.basicSalary * 12
+  const annualHRA = structure.hra * 12
+  const annualLTA = (structure.lta || 0) * 12
+  const annualSpecial = (structure.specialAllowance || 0) * 12
+  const annualOther = (structure.otherAllowancesMonthly || 0) * 12
+  const annualBonus = (structure.bonusAnnual || 0)
+  
+  // Gross = MAX(Annual CTC, Sum of components) to prevent double counting if components are already part of CTC
+  const componentSum = annualBasic + annualHRA + annualLTA + annualSpecial + annualOther + annualBonus
+  const gross = Math.max(salary.annualCTC, componentSum)
   const ageCategory: AgeCategory = input.ageCategory || 'below60'
 
   const { deductions, breakdown } = computeDeductions(input)

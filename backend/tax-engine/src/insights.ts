@@ -30,8 +30,8 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
   const insights: Insight[] = []
   const { deductions } = result
   const limits = FY_2025_26.deductionLimits
-  const recommended = result.recommendedRegime === 'old' ? result.old : result.new
-  const marginalRate = recommended.marginalRate / 100
+  const oldMarginalRate = result.old.marginalRate / 100
+  const oldRateWithCess = oldMarginalRate * 1.04
 
   // ── 1. Loss Meter — Overpaying Alert ─────────────────────────────────
   if (result.lossMeter > 1000) {
@@ -51,7 +51,7 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
   // ── 2. 80C Gap ────────────────────────────────────────────────────────
   const gap80C = Math.max(0, limits.section80C - deductions.section80C)
   if (gap80C > 5000) {
-    const taxSaved = Math.round(gap80C * marginalRate * 1.04) // include cess
+    const taxSaved = Math.round(gap80C * oldRateWithCess)
     insights.push({
       id: '80c-gap',
       section: '80C',
@@ -72,7 +72,7 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       severity: 'success',
       title: '80C fully utilized — excellent!',
       description: result.recommendedRegime === 'old' 
-        ? `You've invested the maximum ₹1,50,000 under Section 80C, saving you ${rupees(Math.round(limits.section80C * marginalRate * 1.04))} in tax.`
+        ? `You've invested the maximum ₹1,50,000 under Section 80C, saving you ${rupees(Math.round(limits.section80C * oldRateWithCess))} in tax.`
         : `You've maxed out Section 80C. While this doesn't affect New Regime tax, it builds your long-term wealth.`,
       potentialSaving: 0,
       icon: 'CheckCircle',
@@ -81,16 +81,16 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
 
   // ── 3. NPS 80CCD(1B) Gap ──────────────────────────────────────────────
   const gapNPS = Math.max(0, limits.section80CCD1B - deductions.section80CCD1B)
-  if (gapNPS > 1000 && result.recommendedRegime === 'old') {
-    const taxSaved = Math.round(gapNPS * marginalRate * 1.04)
+  if (gapNPS > 1000) {
+    const taxSaved = Math.round(gapNPS * oldRateWithCess)
     insights.push({
       id: 'nps-gap',
       section: '80CCD(1B)',
       severity: 'warning',
-      title: `Missing ₹50K NPS benefit under 80CCD(1B)`,
-      description: `You can invest an extra ${rupees(gapNPS)} in NPS Tier 1 — OVER and ABOVE your 80C limit — saving an additional ${rupees(taxSaved)} in tax. This is a deduction most people miss.`,
+      title: `Potential ${rupees(taxSaved)} extra saving via NPS`,
+      description: `Investing an extra ${rupees(gapNPS)} in NPS Tier 1 (under 80CCD1B) saves you ${rupees(taxSaved)} in the Old Regime. This is over and above your 80C limit.`,
       actionText: 'Open NPS account (eNPS) →',
-      potentialSaving: taxSaved,
+      potentialSaving: result.recommendedRegime === 'old' ? taxSaved : 0,
       icon: 'TrendingUp',
     })
   }
@@ -105,19 +105,21 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
       description: `Your employer pays ${formatPrecise(input.structure.hra)}/month as HRA. If you pay rent, you can claim HRA exemption and significantly reduce your old regime tax.`,
       actionText: 'Update rent details →',
       actionRoute: '/review',
-      potentialSaving: 0, // variable — depends on rent
+      potentialSaving: 0, 
       icon: 'Home',
     })
   }
 
   if (input.life.isRenting && deductions.hraExemption > 0) {
-    const taxSaved = Math.round(deductions.hraExemption * marginalRate * 1.04)
+    const taxSaved = Math.round(deductions.hraExemption * oldRateWithCess)
     insights.push({
       id: 'hra-claimed',
       section: 'HRA',
       severity: 'success',
       title: `HRA exemption of ${formatPrecise(deductions.hraExemption)} is saving you ${rupees(taxSaved)}`,
-      description: `Your HRA exemption is correctly calculated based on your rent and city. This is a major reason why old regime may be better for you.`,
+      description: result.recommendedRegime === 'old'
+        ? `Your HRA exemption is a major reason why the Old Regime is better for you.`
+        : `While HRA saves you ${rupees(taxSaved)} in the Old Regime, the New Regime is still better due to its lower tax rates.`,
       potentialSaving: 0,
       icon: 'Home',
     })
@@ -127,16 +129,16 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
   const total80D = deductions.section80D_self + deductions.section80D_parents
   const max80D = deductions.section80D_max_self + deductions.section80D_max_parents
   const gap80D = Math.max(0, max80D - total80D)
-  if (gap80D > 2000 && result.recommendedRegime === 'old') {
-    const taxSaved = Math.round(gap80D * marginalRate * 1.04)
+  if (gap80D > 2000) {
+    const taxSaved = Math.round(gap80D * oldRateWithCess)
     insights.push({
       id: '80d-gap',
       section: '80D',
       severity: 'info',
       title: `${rupees(gap80D)} unused health insurance deduction under 80D`,
-      description: `You can claim up to ${rupees(max80D)} for health insurance premiums. Getting comprehensive health insurance also protects your family — win-win.`,
+      description: `You can claim up to ${rupees(max80D)} for health insurance. In the Old Regime, this would save you ${rupees(taxSaved)} extra.`,
       actionText: 'Compare health plans →',
-      potentialSaving: taxSaved,
+      potentialSaving: result.recommendedRegime === 'old' ? taxSaved : 0,
       icon: 'Heart',
     })
   }
@@ -145,7 +147,6 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
   const savings = result.savingsWithRecommended
   if (savings > 500) {
     const better = result.recommendedRegime
-    const worse = better === 'old' ? 'new' : 'old'
     insights.push({
       id: 'regime-recommendation',
       section: 'regime',
@@ -171,13 +172,13 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
 
   // ── 7. Home Loan Interest (24b) ───────────────────────────────────────
   if (input.life.hasHomeLoan && deductions.section24b > 0) {
-    const taxSaved = Math.round(deductions.section24b * marginalRate * 1.04)
+    const taxSaved = Math.round(deductions.section24b * oldRateWithCess)
     insights.push({
       id: '24b-claimed',
       section: '24b',
       severity: 'success',
       title: `Home loan interest of ${rupees(deductions.section24b)} deducted under Section 24b`,
-      description: `This is saving you ${rupees(taxSaved)} in tax. This deduction is available ONLY in the old regime.`,
+      description: `This saves you ${rupees(taxSaved)} in the Old Regime. This deduction is available ONLY in the Old Regime.`,
       potentialSaving: 0,
       icon: 'Building',
     })
