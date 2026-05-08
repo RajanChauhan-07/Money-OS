@@ -26,9 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="w-full max-w-7xl mx-auto px-6 pt-4 pb-2 flex justify-center items-center relative z-50">
               <NavHeader />
             </header>
-            <div className="fixed right-4 top-4 z-50 md:right-6 md:top-6">
-              <ThemeToggle />
-            </div>
             <main className="flex-1">
               {children}
             </main>

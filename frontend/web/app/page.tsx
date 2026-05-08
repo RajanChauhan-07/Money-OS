@@ -1,7 +1,50 @@
-import Link from "next/link";
-import { ArrowRight, Upload, FileText, CheckCircle2, Shield, Calendar, Bot, Users, Search, Calculator, Download, ChevronDown } from "lucide-react";
-import { GlowCard, LanguageToggle, SplitText, LiquidButton, AuroraButton, NavHeader, CircularTestimonials } from "@/components/ui";
+'use client'
 
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { ArrowRight, Upload, FileText, CheckCircle2, Shield, Calendar, Bot, Users, Search, Calculator, Download, ChevronDown, Briefcase, PieChart, Zap, ArrowRightLeft } from "lucide-react";
+import { GlowCard, LanguageToggle, SplitText, LiquidButton, AuroraButton, NavHeader, CircularTestimonials } from "@/components/ui";
+import { cn } from "@/lib/utils";
+
+function FAQItem({ question, answer }: { question: string, answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="border border-[var(--border-subtle)] rounded-2xl bg-[var(--bg-surface)]/40 overflow-hidden transition-all hover:bg-[var(--bg-surface)]/60">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-5 flex items-center justify-between text-left"
+      >
+        <h4 className="text-lg font-semibold text-[var(--text-primary)]">{question}</h4>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="text-[var(--text-tertiary)]"
+        >
+          <ChevronDown size={20} />
+        </motion.div>
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="px-6 pb-5">
+              <p className="text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border-subtle)] pt-4">
+                {answer}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -119,89 +162,118 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* SECTION 5: WHO USES MONEY OS */}
-        <div className="w-full mb-32">
-          <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-12 text-center">Who uses Money OS</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
-              <h4 className="font-semibold text-[var(--text-primary)]">The salaried employee</h4>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                who gets a Form 16 every year, files ITR in July, and has no idea if they paid the right amount.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
-              <h4 className="font-semibold text-[var(--text-primary)]">The person who invests in ELSS</h4>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                every March without knowing if their 80C was already full or whether Old Regime even applies to them.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
-              <h4 className="font-semibold text-[var(--text-primary)]">The first-time earner</h4>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                who doesn't know what 80C is, got put in New Regime by default, and has never spoken to a CA.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
-              <h4 className="font-semibold text-[var(--text-primary)]">The job changer</h4>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                who has two Form 16s this year, isn't sure if their combined TDS was correct, and doesn't want a surprise notice.
-              </p>
-            </div>
+        {/* SECTION 5: WHO IS MONEY OS FOR? (Symmetric Floating Cluster) */}
+        <div className="w-full mt-16 mb-[220px] relative">
+          <div className="absolute inset-0 bg-[var(--brand-primary)]/5 blur-[150px] rounded-full" />
+          <h2 className="text-4xl font-bold text-[var(--text-primary)] mb-16 text-center tracking-tight relative z-10">Who is Money OS for?</h2>
+          
+          <div className="grid md:grid-cols-2 gap-16 max-w-6xl mx-auto px-6 relative z-10 -mt-[5px]">
+            {/* Card 1: Salaried */}
+            <motion.div 
+              animate={{ y: [0, -15, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="p-8 md:p-12 rounded-[48px] bg-white/5 dark:bg-zinc-900/30 backdrop-blur-3xl border border-white/5 shadow-2xl flex items-center gap-8 transition-all hover:bg-white/10"
+            >
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-blue-500/10 flex items-center justify-center shadow-inner">
+                <Briefcase className="w-8 h-8 text-blue-500" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-bold text-white">The salaried employee</h4>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  who gets a Form 16 every year, files ITR in July, and has no idea if they paid the right amount.
+                </p>
+              </div>
+            </motion.div>
+            
+            {/* Card 2: ELSS */}
+            <motion.div 
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              className="p-8 md:p-12 rounded-[48px] bg-white/5 dark:bg-zinc-900/30 backdrop-blur-3xl border border-white/5 shadow-2xl flex items-center gap-8 transition-all hover:bg-white/10"
+            >
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-purple-500/10 flex items-center justify-center shadow-inner">
+                <PieChart className="w-8 h-8 text-purple-500" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-bold text-white">The ELSS investor</h4>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  every March without knowing if their 80C was already full or whether Old Regime even applies.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Card 3: First-time */}
+            <motion.div 
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="p-8 md:p-12 rounded-[48px] bg-white/5 dark:bg-zinc-900/30 backdrop-blur-3xl border border-white/5 shadow-2xl flex items-center gap-8 transition-all hover:bg-white/10"
+            >
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-amber-500/10 flex items-center justify-center shadow-inner">
+                <Zap className="w-8 h-8 text-amber-500" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-bold text-white">The first-time earner</h4>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  who doesn't know what 80C is, got put in New Regime by default, and has never spoken to a CA.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Card 4: Job Changer */}
+            <motion.div 
+              animate={{ y: [0, -18, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+              className="p-8 md:p-12 rounded-[48px] bg-white/5 dark:bg-zinc-900/30 backdrop-blur-3xl border border-white/5 shadow-2xl flex items-center gap-8 transition-all hover:bg-white/10"
+            >
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-emerald-500/10 flex items-center justify-center shadow-inner">
+                <ArrowRightLeft className="w-8 h-8 text-emerald-500" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-bold text-white">The job changer</h4>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  who has two Form 16s, isn't sure if their combined TDS was correct, and doesn't want a surprise notice.
+                </p>
+              </div>
+            </motion.div>
           </div>
         </div>
 
         {/* FAQ SECTION */}
-        <div className="w-full max-w-3xl mx-auto mb-32">
+        <div className="w-full max-w-3xl mx-auto mb-32 mt-[-20px]">
           <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-10 text-center">Frequently Asked Questions</h2>
-          <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">What is Form 16?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                Your employer sends it every year, usually in May or June. It's a summary of your salary and how much tax was deducted. Think of it as a receipt for last year's taxes.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Which regime should I pick — Old or New?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                It depends on your specific situation — your rent, home loan, health insurance, and other deductions. There's no universal answer. Upload your Form 16 or enter your details and we'll calculate both.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">What if I don't have my Form 16 yet?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                Enter your salary details manually. It takes about 3 minutes. You can always upload Form 16 later to verify and update.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">What does Money OS actually do?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                It reads your financial details, computes your tax under both regimes, identifies deductions you haven't used, and gives you a month-by-month plan for the current financial year. It does not file your ITR, execute investments, or manage your money in any way.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Is my Form 16 stored?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                No. It's processed to extract the numbers and deleted within 24 hours. We don't store the PDF. We only keep the extracted fields if you save your plan.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">What if I changed jobs and have two Form 16s?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                Upload both. We combine the income from both employers, check whether your total TDS was sufficient, and flag any advance tax you may owe before March 15.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Does this replace a CA?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                No. Money OS gives you the planning layer — what to claim, which regime, how to allocate. A CA handles ITR filing, complex capital gains, business income, and tax notices. We tell you what to do. A CA handles the formal paperwork.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-[var(--bg-surface)]/60 border border-[var(--border-subtle)]">
-              <h4 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Is it really free?</h4>
-              <p className="text-[var(--text-secondary)] leading-relaxed">
-                Yes. There's no subscription, no freemium wall, and no investment product being sold to you. The planning tool is completely free.
-              </p>
-            </div>
+          <div className="space-y-4">
+            <FAQItem 
+              question="What is Form 16?" 
+              answer="Your employer sends it every year, usually in May or June. It's a summary of your salary and how much tax was deducted. Think of it as a receipt for last year's taxes." 
+            />
+            <FAQItem 
+              question="Which regime should I pick — Old or New?" 
+              answer="It depends on your specific situation — your rent, home loan, health insurance, and other deductions. There's no universal answer. Upload your Form 16 or enter your details and we'll calculate both." 
+            />
+            <FAQItem 
+              question="What if I don't have my Form 16 yet?" 
+              answer="Enter your salary details manually. It takes about 3 minutes. You can always upload Form 16 later to verify and update." 
+            />
+            <FAQItem 
+              question="What does Money OS actually do?" 
+              answer="It reads your financial details, computes your tax under both regimes, identifies deductions you haven't used, and gives you a month-by-month plan for the current financial year. It does not file your ITR, execute investments, or manage your money in any way." 
+            />
+            <FAQItem 
+              question="Is my Form 16 stored?" 
+              answer="No. It's processed to extract the numbers and deleted within 24 hours. We don't store the PDF. We only keep the extracted fields if you save your plan." 
+            />
+            <FAQItem 
+              question="What if I changed jobs and have two Form 16s?" 
+              answer="Upload both. We combine the income from both employers, check whether your total TDS was sufficient, and flag any advance tax you may owe before March 15." 
+            />
+            <FAQItem 
+              question="Does this replace a CA?" 
+              answer="No. Money OS gives you the planning layer — what to claim, which regime, how to allocate. A CA handles ITR filing, complex capital gains, business income, and tax notices. We tell you what to do. A CA handles the formal paperwork." 
+            />
+            <FAQItem 
+              question="Is it really free?" 
+              answer="Yes. There's no subscription, no freemium wall, and no investment product being sold to you. The planning tool is completely free." 
+            />
           </div>
         </div>
 
@@ -221,10 +293,10 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex gap-6 text-sm text-[var(--text-secondary)]">
-              <Link href="#" className="hover:text-[var(--text-primary)] transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-[var(--text-primary)] transition-colors">Terms of Use</Link>
-              <Link href="#" className="hover:text-[var(--text-primary)] transition-colors">Help</Link>
-              <Link href="#" className="hover:text-[var(--text-primary)] transition-colors">Contact</Link>
+              <Link href="/privacy" className="hover:text-[var(--text-primary)] transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-[var(--text-primary)] transition-colors">Terms of Use</Link>
+              <Link href="/help" className="hover:text-[var(--text-primary)] transition-colors">Help</Link>
+              <Link href="/contact" className="hover:text-[var(--text-primary)] transition-colors">Contact</Link>
             </div>
           </div>
           <div className="pt-8 border-t border-[var(--border-subtle)]/50">

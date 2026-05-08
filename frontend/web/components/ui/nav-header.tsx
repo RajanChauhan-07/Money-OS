@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, LogIn } from "lucide-react";
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 function NavHeader() {
   const [position, setPosition] = useState({
@@ -67,11 +68,17 @@ function NavHeader() {
             </div>
           </Tab>
 
+          <div className="w-[1px] h-6 bg-white/20 self-center mx-2 z-20" />
+          
+          <div className="px-3 flex items-center justify-center z-20">
+            <ThemeToggle />
+          </div>
+
           <Cursor position={position} />
         </ul>
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
 const Tab = ({
   children,

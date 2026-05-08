@@ -3,13 +3,18 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, CheckCircle2, Sparkles, ArrowLeft, Share2, Save, Check, Target, AlertCircle, TrendingUp, Info, Sliders, FileText, X, Download } from 'lucide-react'
+import { ArrowRight, Sparkles, ArrowLeft, Share2, Save, Check, Target, TrendingUp, Sliders, FileText, X, Download, Lock, Key, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@money-os/ui'
 import { MetricCard, RegimeCard, InsightCard, AIAssistantWidget, LanguageToggle } from '@/components/ui'
 import { useTaxStore } from '@/lib/stores/tax-store'
 import { formatRupee } from '@/lib/utils/format'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import * as pdfjs from 'pdfjs-dist'
+import { PDFDocument } from 'pdf-lib'
+
+// Set worker path
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`
 
 export default function TaxResultPage() {
   const router = useRouter()
@@ -29,6 +34,12 @@ export default function TaxResultPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [pdfPassword, setPdfPassword] = useState('')
+  const [isPdfUnlocked, setIsPdfUnlocked] = useState(false)
+  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [pdfUnlockError, setPdfUnlockError] = useState<string | null>(null)
+  const [showPdfPassword, setShowPdfPassword] = useState(false)
+  const [unlockedPdfUrl, setUnlockedPdfUrl] = useState<string | null>(null)
 
   const supabase = getSupabaseBrowserClient()
 
@@ -48,12 +59,75 @@ export default function TaxResultPage() {
     }
   }, [mounted, hasResult, router])
 
-  if (!mounted || !taxResult || !taxInput || !scenarios) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+  // Pre-check if PDF is encrypted
+  useEffect(() => {
+    const checkEncryption = async () => {
+      if (!pdfUrl || isPdfUnlocked) return
+      try {
+        const res = await fetch(pdfUrl)
+        const arrayBuffer = await res.arrayBuffer()
+        const loadingTask = pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) })
+        await loadingTask.promise
+        setIsPdfUnlocked(true)
+      } catch (err: any) {
+        if (err.name === 'PasswordException') {
+          setIsPdfUnlocked(false)
+        } else {
+          setIsPdfUnlocked(true)
+        }
+      }
+    }
+    if (isPdfModalOpen) checkEncryption()
+  }, [pdfUrl, isPdfModalOpen, isPdfUnlocked])
+
+  const handleUnlockPdf = async () => {
+    if (!pdfUrl || !pdfPassword) return
+    setIsUnlocking(true)
+    setPdfUnlockError(null)
+    
+    const trimmedPassword = pdfPassword.trim()
+    
+    try {
+      const res = await fetch(pdfUrl)
+      if (!res.ok) throw new Error('Failed to fetch PDF')
+      const arrayBuffer = await res.arrayBuffer()
+      
+      try {
+        // Fallback check: Try to load with pdfjs first to confirm password
+        const loadingTask = pdfjs.getDocument({ 
+          data: new Uint8Array(arrayBuffer),
+          password: trimmedPassword
+        })
+        await loadingTask.promise
+        
+        // If pdfjs succeeds, then use pdf-lib to strip encryption for preview
+        const pLibDoc = await PDFDocument.load(arrayBuffer, { 
+          password: trimmedPassword,
+          ignoreEncryption: false 
+        })
+        const unencryptedPdfBytes = await pLibDoc.save()
+        
+        const binary = Array.from(unencryptedPdfBytes).map(b => String.fromCharCode(b)).join('')
+        const base64 = btoa(binary)
+        const dataUrl = `data:application/pdf;base64,${base64}`
+        
+        setUnlockedPdfUrl(dataUrl)
+        setIsPdfUnlocked(true)
+        setIsUnlocking(false)
+      } catch (err: any) {
+        console.error('PDF Unlock Error:', err)
+        if (err.name === 'PasswordException') {
+          setPdfUnlockError('Invalid password. Format is usually PAN (CAPS) + DOB (DDMMYYYY).')
+        } else {
+          setPdfUnlockError('Could not decrypt PDF. Please try again.')
+        }
+        setIsUnlocking(false)
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err)
+      setPdfUnlockError('Could not load the file. Please try again.')
+      setIsUnlocking(false)
+    }
   }
 
   const handleSave = async () => {
@@ -70,40 +144,52 @@ export default function TaxResultPage() {
     }
   }
 
+  if (!mounted || !taxResult || !taxInput || !scenarios) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   const recommended = taxResult.recommendedRegime === 'old' ? taxResult.old : taxResult.new
   const isOptimized = activeScenarioMode === 'optimized'
   const isCustom = activeScenarioMode === 'custom'
-
-  // The insights available on the current active result mode
   const currentInsights = taxResult.insights || []
 
   return (
     <div className="min-h-screen flex flex-col relative z-20">
-      {/* Header */}
-      <header className="w-full max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
-        <button onClick={() => router.push('/review')} className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors">
-          <ArrowLeft size={20} className="text-[var(--text-secondary)]" />
-        </button>
-        <div className="flex items-center gap-3">
-          <LanguageToggle />
-          <button className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors text-[var(--text-secondary)]">
-            <Share2 size={18} />
-          </button>
-          <Button 
-            variant={isSaved ? "success" : "outline"} 
-            size="sm" 
-            onClick={handleSave}
-            isLoading={isSaving}
-            disabled={isSaved}
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pt-4 pb-24 space-y-12">
+        {/* Actions Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <button 
+            onClick={() => router.push('/review')} 
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all hover:scale-105"
           >
-            {isSaved ? <Check size={16} className="mr-2" /> : <Save size={16} className="mr-2" />}
-            {isSaved ? 'Saved' : 'Save my plan'}
-          </Button>
+            <ArrowLeft size={18} />
+            <span>Back to Review</span>
+          </button>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+              <Share2 size={18} />
+            </button>
+            <button className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+              <Download size={18} />
+            </button>
+            <Button 
+              variant={isSaved ? "success" : "outline"} 
+              className="flex-1 md:flex-none h-11 rounded-xl px-6 font-semibold"
+              onClick={handleSave}
+              isLoading={isSaving}
+              disabled={isSaved}
+            >
+              {isSaved ? <Check size={16} className="mr-2" /> : <Save size={16} className="mr-2" />}
+              {isSaved ? 'Saved' : 'Save Plan'}
+            </Button>
+          </div>
         </div>
-      </header>
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pb-24 space-y-12">
-        {/* Scenario Toggle & Action */}
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-full flex flex-col md:flex-row items-center justify-center gap-4">
             <div className="flex p-1.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-inner">
@@ -206,7 +292,6 @@ export default function TaxResultPage() {
 
             {(taxResult.lossMeter > 0 || isOptimized) && (
               <div className="w-full md:w-auto md:min-w-[320px] shrink-0">
-                {/* 3. Loss Meter */}
                 {taxResult.lossMeter > 0 && !isOptimized && (
                   <div className="surface-elevated p-6 rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger)]/5 shadow-sm">
                     <div className="flex items-start gap-4">
@@ -251,38 +336,12 @@ export default function TaxResultPage() {
           </div>
         </motion.section>
 
-        {/* Comparison Metrics strip */}
-        <motion.div layout className="grid gap-4 md:grid-cols-3">
-          <MetricCard
-            label="Annual Tax Liability"
-            value={formatRupee(Math.round(recommended.totalTax))}
-            subValue={`incl. 4% cess`}
-            trend="down"
-            trendLabel={isOptimized ? "New Regime" : (recommended.regime === 'old' ? "Old Regime" : "New Regime")}
-            accent={isOptimized ? "success" : "brand"}
-          />
-          <MetricCard
-            label="Monthly In-hand"
-            value={formatRupee(recommended.monthlyTakeHome)}
-            subValue={`After TDS & deductions`}
-            trend="up"
-            trendLabel={isOptimized ? "Maximized" : "Current"}
-          />
-          <MetricCard
-            label="Total Deductions"
-            value={formatRupee(recommended.totalDeductions)}
-            subValue={`${recommended.regime.toUpperCase()} Regime`}
-            trend="neutral"
-            accent={isOptimized ? "success" : "brand"}
-          />
-        </motion.div>
-
         {/* 4. Smart Nudges Strip (Insights) */}
         {currentInsights.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Smart Insights</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {currentInsights.slice(0, 3).map(insight => (
+              {currentInsights.map(insight => (
                 <InsightCard key={insight.id} insight={insight} />
               ))}
             </div>
@@ -328,79 +387,92 @@ export default function TaxResultPage() {
 
       <AIAssistantWidget />
 
-      {/* PDF Viewer Modal */}
+      {/* PDF Modal */}
       <AnimatePresence>
         {isPdfModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsPdfModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--bg-base)] rounded-2xl shadow-2xl border border-[var(--border-subtle)] flex flex-col overflow-hidden"
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 md:p-8">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPdfModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+              className="relative w-full max-w-5xl h-full max-h-[90vh] bg-white dark:bg-[#09090b] rounded-3xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-white/80 dark:bg-black/80 backdrop-blur-xl z-20">
                 <div className="flex items-center gap-2">
-                  <FileText className="text-[var(--brand-primary)]" size={20} />
-                  <h2 className="text-base font-semibold text-[var(--text-primary)]">Uploaded Form 16</h2>
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/10 flex items-center justify-center">
+                    <FileText className="text-[var(--brand-primary)]" size={18} />
+                  </div>
+                  <h2 className="text-sm font-bold text-[var(--text-primary)]">Form 16 Preview</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  {pdfUrl && (
+                  {(pdfUrl || unlockedPdfUrl) && (
                     <a
-                      href={pdfUrl}
+                      href={unlockedPdfUrl || pdfUrl || ''}
                       download="Form-16.pdf"
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-colors text-xs font-medium mr-2"
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white hover:opacity-90 transition-all text-xs font-bold mr-2 shadow-lg shadow-[var(--brand-primary)]/20"
                     >
                       <Download size={14} />
                       Download
                     </a>
                   )}
-                  <button
-                    onClick={() => setIsPdfModalOpen(false)}
-                    className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)] transition-colors"
-                  >
+                  <button onClick={() => setIsPdfModalOpen(false)} className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[var(--text-secondary)] transition-colors">
                     <X size={20} />
                   </button>
                 </div>
               </div>
               
-              <div className={cn("flex-1 overflow-auto bg-zinc-100 dark:bg-zinc-950 flex justify-center", pdfUrl ? "p-0 min-h-[75vh]" : "p-6 md:p-10 min-h-[60vh]")}>
-                {pdfUrl ? (
+              <div className={cn("flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-900/50 flex flex-col justify-center relative", (pdfUrl || unlockedPdfUrl) ? "p-0 min-h-[75vh]" : "p-6 md:p-10 min-h-[60vh]")}>
+                {isPdfUnlocked ? (
                   <embed 
-                    src={pdfUrl}
+                    src={unlockedPdfUrl || pdfUrl || ''}
                     type="application/pdf"
-                    className="w-full h-[75vh] border-0"
+                    className="w-full h-full border-0"
                   />
                 ) : (
-                  <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 shadow-sm rounded-lg border border-zinc-200 dark:border-zinc-800 p-8 md:p-12 space-y-8 h-max my-auto">
-                    {/* Fake PDF Skeleton */}
-                    <div className="flex justify-between items-start border-b border-zinc-100 dark:border-zinc-800 pb-8">
-                      <div className="space-y-3 w-1/2">
-                        <div className="h-6 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                        <div className="h-3 w-1/2 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
-                      </div>
-                      <div className="h-12 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                  <div className="w-full max-w-md mx-auto p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-[var(--border-subtle)] shadow-2xl text-center space-y-6 relative z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--warning)]/10 flex items-center justify-center mx-auto shadow-inner">
+                      <Lock size={32} className="text-[var(--warning)]" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-[var(--text-primary)]">Password Required</h3>
+                      <p className="text-sm text-[var(--text-secondary)]">This PDF is protected. Enter your password to view it.</p>
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="h-4 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded" />
-                      <div className="h-4 w-5/6 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
-                      <div className="h-4 w-4/6 bg-zinc-100 dark:bg-zinc-800/50 rounded" />
+                      <div className="relative">
+                        <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" size={18} />
+                        <input
+                          type={showPdfPassword ? "text" : "password"}
+                          value={pdfPassword}
+                          onChange={(e) => setPdfPassword(e.target.value)}
+                          placeholder="PDF Password"
+                          className={cn(
+                            "w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-2xl py-4 pl-12 pr-12 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all",
+                            pdfUnlockError && "border-[var(--danger)]"
+                          )}
+                        />
+                        <button
+                          onClick={() => setShowPdfPassword(!showPdfPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                        >
+                          {showPdfPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      
+                      {pdfUnlockError && (
+                        <p className="text-sm text-[var(--danger)] font-medium">{pdfUnlockError}</p>
+                      )}
+                      
+                      <Button 
+                        className="w-full h-14 rounded-2xl text-lg font-bold" 
+                        onClick={handleUnlockPdf}
+                        isLoading={isUnlocking}
+                        disabled={isUnlocking}
+                      >
+                        {isUnlocking ? 'Unlocking...' : 'Unlock PDF'}
+                      </Button>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-6 pt-6">
-                      <div className="h-32 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50" />
-                      <div className="h-32 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50" />
-                    </div>
-                    
-                    <div className="h-48 bg-zinc-50 dark:bg-zinc-800/30 rounded border border-zinc-100 dark:border-zinc-800/50 mt-6" />
                   </div>
                 )}
               </div>

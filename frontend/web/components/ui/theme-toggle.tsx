@@ -15,13 +15,13 @@ type ThemeToggleProps = {
 
 export const ThemeToggle = ({ className }: ThemeToggleProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const [darkMode, setDarkMode] = useState(() =>
-    typeof window !== "undefined"
-      ? document.documentElement.classList.contains("dark")
-      : false
-  )
+  const [darkMode, setDarkMode] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    setDarkMode(document.documentElement.classList.contains("dark"))
+
     const syncTheme = () =>
       setDarkMode(document.documentElement.classList.contains("dark"))
 
@@ -87,31 +87,33 @@ export const ThemeToggle = ({ className }: ThemeToggleProps) => {
       )}
       type="button"
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {darkMode ? (
-          <motion.span
-            key="sun-icon"
-            initial={{ opacity: 0, scale: 0.55, rotate: 25 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.33 }}
-            className="text-white"
-          >
-            <Sun className="h-5 w-5" />
-          </motion.span>
-        ) : (
-          <motion.span
-            key="moon-icon"
-            initial={{ opacity: 0, scale: 0.55, rotate: -25 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.33 }}
-            className="text-black"
-          >
-            <Moon className="h-5 w-5" />
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {mounted && (
+        <AnimatePresence mode="wait" initial={false}>
+          {darkMode ? (
+            <motion.span
+              key="sun-icon"
+              initial={{ opacity: 0, scale: 0.55, rotate: 25 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.33 }}
+              className="text-white"
+            >
+              <Sun className="h-5 w-5" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="moon-icon"
+              initial={{ opacity: 0, scale: 0.55, rotate: -25 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.33 }}
+              className="text-black"
+            >
+              <Moon className="h-5 w-5" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      )}
     </button>
   )
 }

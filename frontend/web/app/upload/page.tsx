@@ -9,6 +9,7 @@ import { Button } from '@money-os/ui'
 import type { UploadState } from '@/lib/stores/tax-store'
 import { cn } from '@/lib/utils'
 import * as pdfjs from 'pdfjs-dist'
+import { PDFDocument } from 'pdf-lib'
 
 // Set worker path from unpkg CDN for maximum compatibility
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`
@@ -96,6 +97,31 @@ export default function UploadPage() {
         }
         extractedText = fullText
         setShowPasswordDialog(false) // Close dialog on success
+
+        // ── Create Unencrypted Version for Preview ──────────────────
+        try {
+          // Load the PDF with the password and save it unencrypted
+          const pLibDoc = await PDFDocument.load(arrayBuffer, { 
+            password: pwd,
+            ignoreEncryption: false 
+          })
+          const unencryptedPdfBytes = await pLibDoc.save()
+          
+          // Convert to Base64 Data URL (more stable for embeds)
+          const binary = Array.from(unencryptedPdfBytes).map(b => String.fromCharCode(b)).join('')
+          const base64 = btoa(binary)
+          const dataUrl = `data:application/pdf;base64,${base64}`
+          useTaxStore.getState().setPdfUrl(dataUrl)
+        } catch (pLibErr) {
+          console.warn('Failed to create unencrypted preview, falling back to original:', pLibErr)
+          // Fallback to original Data URL
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const url = e.target?.result as string
+            useTaxStore.getState().setPdfUrl(url)
+          }
+          reader.readAsDataURL(file)
+        }
       } catch (err: any) {
         if (err.name === 'PasswordException') {
           setPendingFile(file)
