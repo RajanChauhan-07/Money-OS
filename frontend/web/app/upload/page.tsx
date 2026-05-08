@@ -3,10 +3,15 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, X, FileText, CheckCircle2, Shield, Loader2, Info, ArrowLeft } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle2, Shield, Loader2, Info, ArrowLeft, Lock, Key, Eye, EyeOff } from 'lucide-react'
 import { useTaxStore } from '@/lib/stores/tax-store'
+import { Button } from '@money-os/ui'
 import type { UploadState } from '@/lib/stores/tax-store'
 import { cn } from '@/lib/utils'
+import * as pdfjs from 'pdfjs-dist'
+
+// Set worker path from unpkg CDN for maximum compatibility
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`
 
 const stageMessages: Record<string, { title: string; description: string }> = {
   uploading: {
@@ -32,6 +37,10 @@ const stageMessages: Record<string, { title: string; description: string }> = {
   error: {
     title: 'Upload Failed',
     description: 'Something went wrong. Please check your file and try again.'
+  },
+  password_required: {
+    title: 'Password Protected',
+    description: 'This PDF is encrypted. Please enter the password to unlock it.'
   }
 }
 
@@ -50,7 +59,13 @@ export default function UploadPage() {
     setMissedOpportunities,
   } = useTaxStore()
 
-  const handleFile = useCallback(async (file: File) => {
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+
+  const handleFile = useCallback(async (file: File, pwd?: string) => {
     if (!file.type.includes('pdf')) {
       setUploadError('Please upload a PDF file.')
       return
@@ -59,23 +74,46 @@ export default function UploadPage() {
     setUploadError(null)
     setUploadState('uploading')
 
-    // Save the PDF as base64 so it persists reliably across page navigations
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
-      useTaxStore.getState().setPdfUrl(dataUrl)
-    }
-    reader.readAsDataURL(file)
-
-    // Simulate stages with delays for UX
-    await new Promise(r => setTimeout(r, 800))
-    setUploadState('reading')
-    await new Promise(r => setTimeout(r, 600))
-    setUploadState('extracting')
-
     try {
+      // ── Local PDF Processing (Frontend Decryption) ──────────────────
+      const arrayBuffer = await file.arrayBuffer()
+      let extractedText = ''
+      
+      try {
+        const loadingTask = pdfjs.getDocument({
+          data: new Uint8Array(arrayBuffer),
+          password: pwd,
+        })
+        const pdfDoc = await loadingTask.promise
+        
+        setUploadState('reading')
+        let fullText = ''
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i)
+          const content = await page.getTextContent()
+          const strings = content.items.map((item: any) => (item as any).str)
+          fullText += strings.join(' ') + '\n'
+        }
+        extractedText = fullText
+        setShowPasswordDialog(false) // Close dialog on success
+      } catch (err: any) {
+        if (err.name === 'PasswordException') {
+          setPendingFile(file)
+          setShowPasswordDialog(true)
+          setUploadState('idle')
+          setIsRetrying(false)
+          if (pwd) setUploadError('Invalid password. Please try again.')
+          return
+        }
+        throw err
+      }
+
+      setUploadState('extracting')
+      
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('extractedText', extractedText)
+      if (pwd) formData.append('password', pwd)
 
       const res = await fetch('/api/form16/parse', {
         method: 'POST',
@@ -86,6 +124,7 @@ export default function UploadPage() {
 
       if (!res.ok) {
         setUploadError(data.error || 'Failed to parse Form 16.')
+        setUploadState('error')
         return
       }
 
@@ -99,11 +138,24 @@ export default function UploadPage() {
 
       // Navigate to review page after a brief moment
       setTimeout(() => router.push('/review'), 1200)
-    } catch (err) {
+      setIsRetrying(false)
+      setShowPasswordDialog(false)
+      setPassword('')
+    } catch (err: any) {
       console.error('Upload error:', err)
-      setUploadError('Network error. Please check your connection and try again.')
+      setUploadError(err.message || 'Error processing PDF. Please try again.')
+      setUploadState('error')
+      setIsRetrying(false)
     }
   }, [router, setUploadState, setUploadError, setForm16Extraction, setDerivedProfile, setMissedOpportunities])
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pendingFile || !password) return
+    
+    setIsRetrying(true)
+    await handleFile(pendingFile, password)
+  }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -271,6 +323,88 @@ export default function UploadPage() {
                   )
                 })}
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {showPasswordDialog && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full max-w-md surface-elevated rounded-3xl p-8 border border-[var(--border-strong)] shadow-2xl"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--warning)]/10 flex items-center justify-center mb-6">
+                    <Lock className="text-[var(--warning)]" size={32} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Password Required</h3>
+                  <p className="text-[var(--text-secondary)] mb-8">
+                    This PDF is protected. Your password is used only for decryption and is never stored.
+                  </p>
+
+                  <form onSubmit={handlePasswordSubmit} className="w-full space-y-4">
+                    <div className="relative group">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] group-focus-within:text-[var(--brand-primary)] transition-colors" size={18} />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter PDF password"
+                        autoFocus
+                        className="w-full bg-[var(--bg-elevated)] border border-[var(--border-strong)] focus:border-[var(--brand-primary)] rounded-2xl py-4 pl-12 pr-12 outline-none transition-all font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    
+                    {uploadError && (
+                      <div className="text-sm text-[var(--danger)] bg-[var(--danger-bg)]/50 py-2 px-3 rounded-lg border border-[var(--danger)]/20">
+                        {uploadError}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowPasswordDialog(false)
+                          setUploadState('idle')
+                          setPassword('')
+                        }}
+                        disabled={isRetrying}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="flex-1"
+                        isLoading={isRetrying}
+                      >
+                        Unlock & Process
+                      </Button>
+                    </div>
+                  </form>
+                  
+                  <p className="mt-6 text-xs text-[var(--text-tertiary)] flex items-center gap-1.5">
+                    <Shield size={12} />
+                    Common passwords: Your PAN (UPPERCASE) or DOB (DDMMYYYY)
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

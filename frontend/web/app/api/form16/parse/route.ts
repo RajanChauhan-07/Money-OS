@@ -207,21 +207,72 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
 }
 
 
+import { PDFDocument } from 'pdf-lib'
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
+    const password = formData.get('password') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Convert file to Buffer for PDFParse
+    // Convert file to Buffer
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const base64 = buffer.toString('base64')
+    let finalBuffer = Buffer.from(arrayBuffer)
+    const extractedTextFromFrontend = formData.get('extractedText') as string | null
 
-    console.log(`[Parse] Attempting AI-powered parsing with ${GEMINI_MODEL} only...`)
+    // ── Check for Encryption & Extract Text ─────────────────────────────
+    let extractedText = extractedTextFromFrontend || ''
+    
+    if (!extractedText) {
+      try {
+        // Use modern ESM import for pdfjs-dist
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+        
+        const loadPdf = async (pwd?: string) => {
+          const loadingTask = pdfjs.getDocument({
+            data: new Uint8Array(arrayBuffer),
+            password: pwd,
+            disableWorker: true,
+            useSystemFonts: true,
+          })
+          const pdfDoc = await loadingTask.promise
+          let fullText = ''
+          for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const page = await pdfDoc.getPage(i)
+            const content = await page.getTextContent()
+            const strings = content.items.map((item: any) => item.str)
+            fullText += strings.join(' ') + '\n'
+          }
+          return fullText
+        }
+
+        try {
+          extractedText = await loadPdf()
+        } catch (err: any) {
+          if (err.name === 'PasswordException' || err.message?.includes('password')) {
+            if (!password) {
+              return NextResponse.json({ error: 'PASSWORD_REQUIRED' }, { status: 401 })
+            }
+            try {
+              extractedText = await loadPdf(password)
+            } catch (decryptErr: any) {
+              return NextResponse.json({ error: 'Invalid password. Please try again.' }, { status: 401 })
+            }
+          } else {
+            throw err
+          }
+        }
+      } catch (err: any) {
+        console.error('[Parse] PDF load error:', err.message)
+        return NextResponse.json({ error: 'Corrupt or invalid PDF file.' }, { status: 400 })
+      }
+    }
+
+    console.log(`[Parse] Attempting AI-powered parsing with ${GEMINI_MODEL}...`)
     let extraction: Form16Extraction | null = null
     let aiErrorMsg = ''
 
@@ -229,9 +280,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gemini API key not configured.' }, { status: 500 })
     }
 
-    console.log(`[Parse] Calling Gemini API for PDF extraction...`)
-    
-    // Attempt Gemini
+    // Call Gemini
     try {
       const apiResponse = await fetch(GEMINI_URL, {
         method: 'POST',
@@ -242,13 +291,13 @@ export async function POST(request: NextRequest) {
           contents: [{
             parts: [
               { text: SYSTEM_PROMPT },
-              { text: "Extract data from this Form 16 PDF. Return only the JSON." },
-              {
+              { text: `Extract data from this Form 16. \n\nCONTENT:\n${extractedText || "See attached PDF"}` },
+              ...(extractedText ? [] : [{
                 inline_data: {
                   mime_type: "application/pdf",
-                  data: base64
+                  data: finalBuffer.toString('base64')
                 }
-              }
+              }])
             ]
           }]
         })
