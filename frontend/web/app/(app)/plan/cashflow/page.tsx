@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { Plus, Trash2, Edit2, X, Check, ArrowDownCircle, ArrowUpCircle, Activity } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Check, ArrowDownCircle, ArrowUpCircle, Activity, Download } from 'lucide-react'
+import { Button } from '@money-os/ui'
 import {
   useTrackerStore,
   type IncomeEntry, type ExpenseEntry, type IncomeType, type ExpenseCategory,
@@ -111,6 +112,11 @@ export default function CashflowPage() {
               Cash Flow Planner
             </h1>
             <p className="text-[var(--text-secondary)] mt-1 text-sm">Track monthly income and expenses. Know your real savings rate.</p>
+          </div>
+          <div className="no-print">
+            <Button onClick={() => window.print()} className="gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20">
+              <Download size={16} /> Print Report
+            </Button>
           </div>
         </div>
 

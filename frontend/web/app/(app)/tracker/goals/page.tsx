@@ -3,15 +3,18 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { Plus, Trash2, Edit2, X, Check, Target, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Check, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useTrackerStore, type Goal, fvSIP, fvLumpsum, pmtRequired, monthsBetween, fmtRupee } from '@/lib/stores/tracker-store'
+import { cn } from '@/lib/utils'
 
-const GOAL_EMOJIS = ['🏠', '🚗', '✈️', '💍', '🎓', '👶', '🏖️', '💼', '🏋️', '📱', '🌍', '💰', '🏥', '🎯']
+const GOAL_EMOJIS = ['🏠', '🚗', '✈️', '💍', '🎓', '👶', '🏖️', '💼', '🏋️', '📱', '🌍', '💰', '🏥', '💎']
 
-const glass = 'rounded-[2rem] bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-xl shadow-xl'
+// Pure Frosted Glass Utility - Optimized for both modes
+const glass = 'rounded-[2.5rem] bg-white/40 dark:bg-white/[0.02] border border-black/5 dark:border-white/10 backdrop-blur-[40px] shadow-2xl dark:shadow-none'
+const surface = 'rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-xl'
 
 const emptyForm = (): Omit<Goal, 'id'> => ({
-  name: '', emoji: '🎯',
+  name: '', emoji: '💎',
   targetAmount: 0,
   targetDate: new Date(Date.now() + 5 * 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
   currentSaved: 0,
@@ -29,34 +32,18 @@ export default function GoalsPage() {
 
   const today = new Date().toISOString()
 
-  // ── Enrich each goal ─────────────────────────────────────────────────────
   const enriched = goals.map(g => {
     const monthsLeft = Math.max(0, monthsBetween(today, g.targetDate))
     const yearsLeft = monthsLeft / 12
-
-    // Projected corpus = FV of lumpsum (current saved) + FV of SIP (monthly contributions)
-    const projectedCorpus = fvLumpsum(g.currentSaved, g.expectedCAGR, yearsLeft)
-      + fvSIP(g.monthlyContribution, g.expectedCAGR, monthsLeft)
-
+    const projectedCorpus = fvLumpsum(g.currentSaved, g.expectedCAGR, yearsLeft) + fvSIP(g.monthlyContribution, g.expectedCAGR, monthsLeft)
     const gap = g.targetAmount - projectedCorpus
     const progressPct = Math.min(100, (projectedCorpus / g.targetAmount) * 100)
     const onTrack = projectedCorpus >= g.targetAmount
-
-    // Required monthly SIP if user had nothing and needed to start fresh
-    const requiredSIP = pmtRequired(
-      Math.max(0, g.targetAmount - fvLumpsum(g.currentSaved, g.expectedCAGR, yearsLeft)),
-      g.expectedCAGR,
-      monthsLeft
-    )
-
-    // Projection chart: year-by-year corpus
-    const projectionData = Array.from({ length: Math.min(Math.ceil(yearsLeft) + 1, 31) }, (_, yr) => {
-      const months = yr * 12
-      const corpus = fvLumpsum(g.currentSaved, g.expectedCAGR, yr)
-        + fvSIP(g.monthlyContribution, g.expectedCAGR, months)
-      return { year: `Y${yr}`, corpus: Math.round(corpus), target: g.targetAmount }
-    })
-
+    const requiredSIP = pmtRequired(Math.max(0, g.targetAmount - fvLumpsum(g.currentSaved, g.expectedCAGR, yearsLeft)), g.expectedCAGR, monthsLeft)
+    const projectionData = Array.from({ length: Math.min(Math.ceil(yearsLeft) + 1, 31) }, (_, yr) => ({
+      year: `Y${yr}`, corpus: Math.round(fvLumpsum(g.currentSaved, g.expectedCAGR, yr) + fvSIP(g.monthlyContribution, g.expectedCAGR, yr * 12)),
+      target: g.targetAmount
+    }))
     return { ...g, monthsLeft, yearsLeft, projectedCorpus, gap, progressPct, onTrack, requiredSIP, projectionData }
   })
 
@@ -64,21 +51,12 @@ export default function GoalsPage() {
   const totalCurrentSaved = goals.reduce((s, g) => s + g.currentSaved, 0)
   const goalsOnTrack = enriched.filter(g => g.onTrack).length
 
-  // ── Form ─────────────────────────────────────────────────────────────────
-  const validate = () => {
-    if (!form.name.trim()) return 'Goal name is required'
-    if (form.targetAmount <= 0) return 'Target amount must be > 0'
-    if (new Date(form.targetDate) <= new Date()) return 'Target date must be in the future'
-    if (form.expectedCAGR <= 0 || form.expectedCAGR > 30) return 'CAGR must be between 1-30%'
-    return ''
-  }
-
   const handleSubmit = () => {
-    const err = validate()
-    if (err) { setFormError(err); return }
-    if (editId) { updateGoal(editId, form); setEditId(null) }
+    if (!form.name.trim()) { setFormError('Goal name is required'); return }
+    if (form.targetAmount <= 0) { setFormError('Target amount must be > 0'); return }
+    if (editId) updateGoal(editId, form)
     else addGoal(form)
-    setForm(emptyForm()); setShowForm(false); setFormError('')
+    setForm(emptyForm()); setShowForm(false); setEditId(null); setFormError('')
   }
 
   const startEdit = (g: Goal) => {
@@ -89,225 +67,262 @@ export default function GoalsPage() {
   const cancelForm = () => { setForm(emptyForm()); setShowForm(false); setEditId(null); setFormError('') }
 
   return (
-    <div className="min-h-[calc(100vh-2rem)] m-4 rounded-[2.5rem] bg-white/20 dark:bg-white/[0.01] backdrop-blur-3xl border border-white/20 dark:border-white/5 shadow-2xl overflow-hidden">
-      <div className="w-full max-w-6xl mx-auto px-6 py-8 space-y-8">
-
+    <div className="min-h-screen p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-10">
+        
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-amber-500/10"><Target className="text-amber-400" size={26} /></div>
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900/5 dark:bg-white/10 flex items-center justify-center backdrop-blur-3xl shadow-inner border border-black/5 dark:border-white/10">
+                <TrendingUp className="text-zinc-900 dark:text-white" size={24} />
+              </div>
               Goals Tracker
             </h1>
-            <p className="text-[var(--text-secondary)] mt-1 text-sm">Define financial goals. See if you're on track with real projections.</p>
+            <p className="text-zinc-500 dark:text-white/50 mt-3 text-lg font-medium">Map your financial future with precision.</p>
           </div>
-          <button onClick={() => { setEditId(null); setForm(emptyForm()); setShowForm(true) }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-all shadow-lg shadow-amber-500/30 hover:scale-105 active:scale-95">
-            <Plus size={18} /> Add Goal
+          <button 
+            onClick={() => { setEditId(null); setForm(emptyForm()); setShowForm(true) }}
+            className="flex items-center justify-center gap-3 px-8 py-4 rounded-3xl bg-zinc-900 dark:bg-white text-white dark:text-black font-bold text-sm transition-all hover:bg-zinc-800 dark:hover:bg-white/90 active:scale-95 shadow-xl dark:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+          >
+            <Plus size={20} strokeWidth={3} /> Add New Goal
           </button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Summary Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'Total Goals', value: `${goals.length}`, color: 'text-[var(--text-primary)]' },
-            { label: 'Total Target', value: fmtRupee(totalTargetAmount), color: 'text-amber-400' },
-            { label: 'Currently Saved', value: fmtRupee(totalCurrentSaved), color: 'text-emerald-400' },
-            { label: 'On Track', value: `${goalsOnTrack} / ${goals.length}`, color: goalsOnTrack === goals.length && goals.length > 0 ? 'text-emerald-400' : 'text-amber-400' },
+            { label: 'Active Goals', value: `${goals.length}` },
+            { label: 'Total Target', value: fmtRupee(totalTargetAmount) },
+            { label: 'Saved Assets', value: fmtRupee(totalCurrentSaved) },
+            { label: 'Health Status', value: goals.length > 0 ? `${Math.round((goalsOnTrack/goals.length)*100)}% on track` : '0 goals' },
           ].map((c, i) => (
-            <div key={i} className={`${glass} p-5`}>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-tertiary)] mb-1 opacity-70">{c.label}</p>
-              <p className={`text-2xl font-black tracking-tight ${c.color}`}>{c.value}</p>
+            <div key={i} className={cn(glass, "p-8 group hover:bg-black/[0.02] dark:hover:bg-white/[0.05] transition-all duration-500")}>
+              <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400 dark:text-white/40 mb-3">{c.label}</p>
+              <p className="text-3xl font-bold tracking-tighter text-zinc-900 dark:text-white">{c.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Goal Cards */}
-        {enriched.length === 0 ? (
-          <div className={`${glass} flex flex-col items-center justify-center py-20 text-center`}>
-            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center mb-5 text-4xl">🎯</div>
-            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No goals yet</h3>
-            <p className="text-[var(--text-secondary)] text-sm max-w-sm">Add your financial goals — house down payment, car, vacation, retirement — and we'll tell you exactly what SIP you need.</p>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            {enriched.map(g => (
-              <motion.div key={g.id} layout className={`${glass} overflow-hidden`}>
+        {/* Goals Container */}
+        <div className="space-y-8">
+          {enriched.length === 0 ? (
+            <div className={cn(glass, "py-48 flex flex-col items-center justify-center text-center border-dashed border-black/10 dark:border-white/20 px-8")}>
+              <h3 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4 tracking-tight">Your vision is empty</h3>
+              <p className="text-zinc-500 dark:text-white/40 text-sm md:text-base max-w-lg leading-relaxed font-medium">Add a milestone like retirement, a home, or travel to start projecting your growth and building your financial future.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {enriched.map(g => (
+                <motion.div key={g.id} layout className={cn(glass, "overflow-hidden group")}>
+                  <div 
+                    className="px-8 py-8 flex flex-col md:flex-row items-center gap-8 cursor-pointer"
+                    onClick={() => setExpandedGoal(expandedGoal === g.id ? null : g.id)}
+                  >
+                    <div className="w-20 h-20 rounded-[2rem] bg-black/5 dark:bg-white/5 flex items-center justify-center text-4xl shadow-inner border border-black/5 dark:border-white/10 group-hover:scale-110 transition-transform duration-500">{g.emoji}</div>
+                    
+                    <div className="flex-1 w-full space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{g.name}</h3>
+                          <span className={cn(
+                            "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border backdrop-blur-3xl",
+                            g.onTrack ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 text-zinc-500 dark:text-white/60"
+                          )}>
+                            {g.onTrack ? 'Safe' : 'Action Required'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={e => { e.stopPropagation(); startEdit(g) }} className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white transition-all"><Edit2 size={16} /></button>
+                          <button onClick={e => { e.stopPropagation(); deleteGoal(g.id) }} className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-red-500/10 dark:hover:bg-red-500/10 text-zinc-400 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
 
-                {/* Goal Header */}
-                <div className="px-6 py-5 flex items-start gap-4 cursor-pointer hover:bg-white/5 transition-colors"
-                  onClick={() => setExpandedGoal(expandedGoal === g.id ? null : g.id)}>
-                  <div className="w-14 h-14 rounded-2xl bg-white/20 dark:bg-white/10 flex items-center justify-center text-3xl shrink-0 shadow-inner">{g.emoji}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                      <h3 className="text-lg font-bold text-[var(--text-primary)]">{g.name}</h3>
-                      {g.onTrack ? (
-                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
-                          <CheckCircle2 size={11} /> On Track
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest">
-                          <AlertTriangle size={11} /> Needs Attention
-                        </span>
-                      )}
-                    </div>
-                    {/* Progress bar */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 h-2.5 rounded-full bg-white/10 overflow-hidden">
+                      {/* Frosted Progress */}
+                      <div className="relative h-4 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }} animate={{ width: `${g.progressPct}%` }}
-                          transition={{ duration: 1, ease: 'easeOut' }}
-                          className={`h-full rounded-full ${g.onTrack ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}
+                          transition={{ duration: 1.5, ease: [0.23, 1, 0.32, 1] }}
+                          className="h-full bg-zinc-900/40 dark:bg-white/60 backdrop-blur-3xl rounded-full"
                         />
                       </div>
-                      <span className="text-xs font-bold text-[var(--text-secondary)] shrink-0">{g.progressPct.toFixed(0)}%</span>
-                    </div>
-                    <div className="flex items-center gap-6 mt-2 flex-wrap">
-                      <span className="text-xs text-[var(--text-tertiary)]">Target: <strong className="text-[var(--text-primary)]">{fmtRupee(g.targetAmount)}</strong></span>
-                      <span className="text-xs text-[var(--text-tertiary)]">Projected: <strong className={g.onTrack ? 'text-emerald-400' : 'text-amber-400'}>{fmtRupee(g.projectedCorpus)}</strong></span>
-                      <span className="text-xs text-[var(--text-tertiary)]">{Math.floor(g.yearsLeft)}y {Math.round((g.yearsLeft % 1) * 12)}m left</span>
-                      <span className="text-xs text-[var(--text-tertiary)]">by {new Date(g.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button onClick={e => { e.stopPropagation(); startEdit(g) }} className="p-2 rounded-xl hover:bg-white/10 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"><Edit2 size={15} /></button>
-                    <button onClick={e => { e.stopPropagation(); deleteGoal(g.id) }} className="p-2 rounded-xl hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
-                  </div>
-                </div>
 
-                {/* Expanded Detail */}
-                <AnimatePresence>
-                  {expandedGoal === g.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-white/10">
-                      <div className="px-6 py-6 grid lg:grid-cols-[1fr_280px] gap-6">
-
-                        {/* Projection Chart */}
-                        <div>
-                          <h4 className="text-sm font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-amber-400" /> Corpus Projection</h4>
-                          <ResponsiveContainer width="100%" height={220}>
-                            <AreaChart data={g.projectionData} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
-                              <defs>
-                                <linearGradient id={`grad-${g.id}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <XAxis dataKey="year" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                              <YAxis tickFormatter={v => fmtRupee(v)} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
-                              <Tooltip formatter={(v: number) => fmtRupee(v)} contentStyle={{ background: 'rgba(15,15,25,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', color: '#fff' }} />
-                              <Area type="monotone" dataKey="corpus" name="Projected" stroke="#f59e0b" fill={`url(#grad-${g.id})`} strokeWidth={2.5} />
-                              <Area type="monotone" dataKey="target" name="Target" stroke="#6366f1" fill="none" strokeDasharray="6 4" strokeWidth={1.5} />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* Stats Panel */}
-                        <div className="space-y-3">
-                          {[
-                            { label: 'Currently Saved', value: fmtRupee(g.currentSaved) },
-                            { label: 'Monthly Contribution', value: fmtRupee(g.monthlyContribution) },
-                            { label: 'Expected CAGR', value: `${g.expectedCAGR}%` },
-                            { label: 'Months Left', value: `${g.monthsLeft}` },
-                          ].map((s, i) => (
-                            <div key={i} className="flex justify-between items-center py-2.5 border-b border-white/5">
-                              <span className="text-xs text-[var(--text-secondary)]">{s.label}</span>
-                              <span className="text-sm font-bold text-[var(--text-primary)]">{s.value}</span>
-                            </div>
-                          ))}
-
-                          {/* Required SIP */}
-                          <div className={`mt-4 p-4 rounded-2xl ${g.onTrack ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-                            {g.onTrack ? (
-                              <>
-                                <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest mb-1">✓ You're on track!</p>
-                                <p className="text-xs text-emerald-300 leading-relaxed">Your current SIP of <strong>{fmtRupee(g.monthlyContribution)}/mo</strong> is sufficient to reach this goal.</p>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-[10px] uppercase font-bold text-red-400 tracking-widest mb-1">Required Monthly SIP</p>
-                                <p className="text-2xl font-black text-red-400">{fmtRupee(g.requiredSIP)}<span className="text-sm font-semibold">/mo</span></p>
-                                <p className="text-xs text-red-300 mt-1">You're contributing <strong>{fmtRupee(g.monthlyContribution)}/mo</strong>. Increase by <strong>{fmtRupee(Math.max(0, g.requiredSIP - g.monthlyContribution))}</strong> to stay on track.</p>
-                              </>
-                            )}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex gap-8">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-white/30 uppercase tracking-widest mb-1">Target</span>
+                            <span className="font-bold text-zinc-600 dark:text-white/80">{fmtRupee(g.targetAmount)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-white/30 uppercase tracking-widest mb-1">Projected</span>
+                            <span className="font-bold text-zinc-900 dark:text-white">{fmtRupee(g.projectedCorpus)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-white/30 uppercase tracking-widest mb-1">Time Horizon</span>
+                            <span className="font-bold text-zinc-500 dark:text-white/60">{Math.floor(g.yearsLeft)}y {Math.round((g.yearsLeft % 1) * 12)}m</span>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <span className="text-3xl font-black text-black/10 dark:text-white/20">{g.progressPct.toFixed(0)}%</span>
+                        </div>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                  </div>
 
-              </motion.div>
-            ))}
-          </div>
-        )}
+                  <AnimatePresence>
+                    {expandedGoal === g.id && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                        <div className="px-8 pb-10 pt-4 border-t border-black/5 dark:border-white/5 grid lg:grid-cols-[1fr_320px] gap-12">
+                          
+                          <div className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={g.projectionData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                                <defs>
+                                  <linearGradient id={`grad-${g.id}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="currentColor" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="currentColor" stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <XAxis dataKey="year" tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                  contentStyle={{ background: 'var(--tooltip-bg, rgba(25,25,25,0.9))', border: '1px solid rgba(128,128,128,0.2)', borderRadius: '1.5rem', backdropFilter: 'blur(10px)', color: 'inherit' }}
+                                  formatter={(v: number) => fmtRupee(v)}
+                                />
+                                <Area type="monotone" dataKey="corpus" stroke="currentColor" fill={`url(#grad-${g.id})`} strokeWidth={3} strokeOpacity={0.8} className="text-zinc-900 dark:text-white" />
+                                <Area type="monotone" dataKey="target" stroke="currentColor" fill="none" strokeDasharray="10 10" strokeWidth={1} strokeOpacity={0.2} className="text-zinc-900 dark:text-white" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
 
-        {/* Form Modal */}
+                          <div className="space-y-6">
+                            <div className={cn(surface, "p-8 space-y-4")}>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-zinc-400 dark:text-white/30 uppercase tracking-widest">Efficiency</span>
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white">{g.expectedCAGR}% pa</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-zinc-400 dark:text-white/30 uppercase tracking-widest">Current Monthly</span>
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white">{fmtRupee(g.monthlyContribution)}</span>
+                              </div>
+                              
+                              <div className="pt-6 border-t border-black/5 dark:border-white/5">
+                                {g.onTrack ? (
+                                  <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 size={20} />
+                                    <span className="text-xs font-bold tracking-tight uppercase">Perfectly on track</span>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em]">Required Monthly</p>
+                                    <p className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter">{fmtRupee(g.requiredSIP)}</p>
+                                    <p className="text-xs text-zinc-500 dark:text-white/50 leading-relaxed">Increase by {fmtRupee(Math.max(0, g.requiredSIP - g.monthlyContribution))} to meet your goal.</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal */}
         <AnimatePresence>
           {showForm && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-                className="w-full max-w-lg rounded-[2rem] bg-zinc-900/95 border border-white/10 shadow-2xl p-8 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white">{editId ? 'Edit Goal' : 'Add Goal'}</h3>
-                  <button onClick={cancelForm} className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><X size={18} /></button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={cancelForm} className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md" />
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="relative w-full max-w-xl rounded-[3rem] bg-white dark:bg-white/[0.08] border border-black/10 dark:border-white/20 backdrop-blur-[100px] shadow-2xl p-12 max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between mb-10">
+                  <h3 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{editId ? 'Refine Vision' : 'New Goal'}</h3>
+                  <button onClick={cancelForm} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-400 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white transition-all hover:bg-black/10 dark:hover:bg-white/10"><X size={20} /></button>
                 </div>
-                <div className="space-y-4">
-                  {/* Emoji picker */}
-                  <div>
-                    <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2 block">Pick an emoji</label>
-                    <div className="flex flex-wrap gap-2">
-                      {GOAL_EMOJIS.map(e => (
-                        <button key={e} onClick={() => setForm(f => ({ ...f, emoji: e }))}
-                          className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${form.emoji === e ? 'bg-amber-500/30 border border-amber-500/50 scale-110' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
-                          {e}
-                        </button>
-                      ))}
+
+                <div className="space-y-8">
+                  <div className="flex flex-wrap gap-3">
+                    {GOAL_EMOJIS.map(e => (
+                      <button key={e} onClick={() => setForm(f => ({ ...f, emoji: e }))}
+                        className={cn(
+                          "w-12 h-12 rounded-2xl text-2xl flex items-center justify-center transition-all",
+                          form.emoji === e ? "bg-zinc-900 dark:bg-white text-white dark:text-black scale-110 shadow-lg" : "bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:bg-black/10 dark:hover:bg-white/10"
+                        )}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Goal Name</label>
+                      <input 
+                        value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="e.g. Dream Villa" 
+                        className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-5 text-zinc-900 dark:text-white text-lg placeholder-zinc-400 dark:placeholder-white/20 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10 transition-all"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Target Amount</label>
+                        <input 
+                          type="number" value={form.targetAmount || ''} onChange={e => setForm(f => ({ ...f, targetAmount: +e.target.value }))}
+                          placeholder="₹ 0" className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-zinc-900 dark:text-white font-bold focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Target Date</label>
+                        <input 
+                          type="date" value={form.targetDate} onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
+                          className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-zinc-900 dark:text-white font-bold focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Existing Savings</label>
+                        <input 
+                          type="number" value={form.currentSaved || ''} onChange={e => setForm(f => ({ ...f, currentSaved: +e.target.value }))}
+                          className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-zinc-900 dark:text-white font-bold focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Current SIP</label>
+                        <input 
+                          type="number" value={form.monthlyContribution || ''} onChange={e => setForm(f => ({ ...f, monthlyContribution: +e.target.value }))}
+                          className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-zinc-900 dark:text-white font-bold focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] ml-2">Expected CAGR (%)</label>
+                      <input 
+                        type="number" value={form.expectedCAGR || ''} onChange={e => setForm(f => ({ ...f, expectedCAGR: +e.target.value }))}
+                        className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-zinc-900 dark:text-white font-bold focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/10"
+                      />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Goal Name *</label>
-                    <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder="e.g. House Down Payment, Retirement Fund" className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Target Amount (₹) *</label>
-                      <input type="number" min="0" value={form.targetAmount || ''} onChange={e => setForm(f => ({ ...f, targetAmount: +e.target.value }))}
-                        placeholder="e.g. 5000000" className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Target Date *</label>
-                      <input type="date" value={form.targetDate} onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-400 transition-colors" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Currently Saved (₹)</label>
-                      <input type="number" min="0" value={form.currentSaved || ''} onChange={e => setForm(f => ({ ...f, currentSaved: +e.target.value }))}
-                        placeholder="Amount saved so far" className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Monthly Contribution (₹)</label>
-                      <input type="number" min="0" value={form.monthlyContribution || ''} onChange={e => setForm(f => ({ ...f, monthlyContribution: +e.target.value }))}
-                        placeholder="Current monthly SIP" className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1.5 block">Expected CAGR (%) *</label>
-                      <input type="number" min="1" max="30" value={form.expectedCAGR || ''} onChange={e => setForm(f => ({ ...f, expectedCAGR: +e.target.value }))}
-                        placeholder="e.g. 10 for balanced fund" className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors" />
-                      <p className="text-[10px] text-white/40 mt-1">FD ~6.5%, Debt MF ~7%, Balanced ~10%, Equity ~12%</p>
-                    </div>
-                  </div>
-                  {formError && <p className="text-red-400 text-sm font-medium">{formError}</p>}
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={cancelForm} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 font-semibold text-sm transition-all">Cancel</button>
-                    <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30">
-                      <Check size={16} /> {editId ? 'Save Changes' : 'Add Goal'}
+
+                  {formError && <p className="text-red-600 dark:text-red-400 text-xs font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20">{formError}</p>}
+
+                  <div className="flex gap-4 pt-6">
+                    <button onClick={cancelForm} className="flex-1 py-5 rounded-2xl text-zinc-400 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white font-bold transition-all">Cancel</button>
+                    <button onClick={handleSubmit} className="flex-1 py-5 rounded-[2rem] bg-zinc-900 dark:bg-white text-white dark:text-black font-black text-sm shadow-xl dark:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-[1.02] active:scale-95 transition-all">
+                      {editId ? 'Apply Changes' : 'Ignite Goal'}
                     </button>
                   </div>
                 </div>
               </motion.div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

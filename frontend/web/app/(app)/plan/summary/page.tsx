@@ -332,7 +332,6 @@ export default function PlanSummaryPage() {
         </div>
       </main>
       
-      <AIAssistantWidget />
     </div>
   )
 }

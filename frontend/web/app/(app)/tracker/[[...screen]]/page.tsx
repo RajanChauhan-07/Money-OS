@@ -25,10 +25,9 @@ export default async function TrackerPage({
   const { screen: slugParts } = await params
   const slug = slugParts?.[0]
 
-  // These are handled by dedicated page.tsx in their own folders
   // This catch-all only handles remaining tracker routes
-  if (!slug || slug === 'calendar') {
-    return <ComingSoon title="Calendar" description="Calendar integration is coming soon." />
+  if (!slug) {
+    notFound()
   }
 
   const screen = getAppScreen('tracker', slug)

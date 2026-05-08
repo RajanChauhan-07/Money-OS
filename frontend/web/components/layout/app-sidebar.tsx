@@ -23,6 +23,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { mockUser } from '@/lib/mock-data'
+import { useTaxStore } from '@/lib/stores/tax-store'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -88,6 +89,14 @@ export function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen 
     )
   }
 
+  const { derivedProfile } = useTaxStore()
+  const userName = derivedProfile?.employer?.companyName 
+    ? "User" // Fallback if no specific name field is found in profile yet, or extract from email
+    : mockUser.name
+
+  // Try to get a better name from profile if available
+  const displayUserName = derivedProfile?.employer?.companyName ? "User" : mockUser.name
+
   const SidebarContent = () => (
     <motion.div
       initial={false}
@@ -142,16 +151,16 @@ export function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen 
           >
             <div className="flex items-center gap-3">
                <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center text-white font-bold shadow-md">
-                 {mockUser.name.charAt(0)}
+                 {displayUserName.charAt(0)}
                </div>
                <div className="flex-1 min-w-0">
-                 <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{mockUser.name}</p>
+                 <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{displayUserName}</p>
                  <p className="text-[10px] text-[var(--text-tertiary)] truncate">Premium User</p>
                </div>
             </div>
             <Link
-              href="/tracker"
-              className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-[var(--brand-primary)] text-white text-[11px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/20"
+              href="/plan/summary"
+              className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-surface)] text-[11px] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/10"
             >
               Review annual plan <ArrowRight size={12} />
             </Link>

@@ -1,10 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { Plus, Trash2, TrendingUp, Edit2, X, Check, IndianRupee, Wallet } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, Edit2, X, Check, IndianRupee, Wallet, Sparkles, ArrowRight } from 'lucide-react'
 import { useTrackerStore, type SIPEntry, type SIPCategory, fvSIP, monthsBetween, fmtRupee } from '@/lib/stores/tracker-store'
+import { useTaxStore } from '@/lib/stores/tax-store'
+import { generateInvestmentPlan } from '@money-os/tax-engine'
+import { cn } from '@/lib/utils'
+import { Button } from '@money-os/ui'
 
 const SIP_CATEGORIES: SIPCategory[] = ['Large Cap', 'Mid Cap', 'Small Cap', 'ELSS', 'Debt', 'Hybrid', 'Index', 'Gold', 'Other']
 
@@ -23,11 +28,28 @@ const emptyForm = (): Omit<SIPEntry, 'id'> => ({
 
 export default function InvestPage() {
   const { sips, addSIP, updateSIP, deleteSIP } = useTrackerStore()
+  const { taxResult, hasResult, scenarios } = useTaxStore()
+  const [activeTab, setActiveTab] = useState<'active' | 'recommended'>('active')
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm())
   const [formError, setFormError] = useState('')
   const [projYears, setProjYears] = useState(10)
+
+  const recommendedPlan = (hasResult && scenarios?.optimized) 
+    ? generateInvestmentPlan(scenarios.optimized)
+    : null
+
+  const handleAddRecommended = (instrument: string, amount: number, category: SIPCategory) => {
+    addSIP({
+      fundName: instrument,
+      category,
+      monthlyAmount: amount,
+      startDate: new Date().toISOString().split('T')[0],
+      expectedCAGR: category === 'ELSS' ? 14 : 12,
+    })
+    setActiveTab('active')
+  }
 
   const today = new Date().toISOString()
 
@@ -107,8 +129,37 @@ export default function InvestPage() {
           </button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Tab Switcher */}
+        <div className="flex p-1 w-fit bg-white/5 border border-white/10 rounded-2xl">
+          {[
+            { id: 'active', label: 'Active SIPs', icon: Wallet },
+            { id: 'recommended', label: 'Engine Recommendations', icon: Sparkles },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={cn(
+                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                activeTab === t.id 
+                  ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" 
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5"
+              )}
+            >
+              <t.icon size={16} />
+              {t.label}
+              {t.id === 'recommended' && recommendedPlan && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-violet-400/20 text-violet-400 text-[10px]">
+                  {recommendedPlan.allocations.filter(a => a.monthlyAmount > 0).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'active' ? (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Monthly SIP', value: fmtRupee(totalMonthly), sub: 'Total active', color: 'text-violet-400' },
             { label: 'Total Invested', value: fmtRupee(totalInvested), sub: 'Since start dates', color: 'text-[var(--text-primary)]' },
@@ -215,6 +266,91 @@ export default function InvestPage() {
             </div>
           )}
         </div>
+        </>
+        ) : (
+          <div className="space-y-6">
+            {!recommendedPlan ? (
+              <div className={`${glass} p-12 text-center`}>
+                <Sparkles className="w-12 h-12 text-violet-400 mx-auto mb-4 opacity-20" />
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">No recommendations yet</h2>
+                <p className="text-[var(--text-secondary)] mt-2 max-w-md mx-auto">
+                  Upload your Form 16 or complete the tax setup to see engine-optimized investment suggestions.
+                </p>
+                <Link href="/setup">
+                  <Button className="mt-6">Get Started</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-[1fr_0.4fr]">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">Optimized Allocations</h2>
+                    <span className="text-xs text-[var(--text-secondary)]">Based on FY 2025-26 Tax Rules</span>
+                  </div>
+                  {recommendedPlan.allocations.filter(a => a.monthlyAmount > 0).map((a, i) => (
+                    <div key={i} className={`${glass} p-6 flex items-center justify-between gap-6 transition-all hover:border-violet-500/30`}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400">
+                          <IndianRupee size={22} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[var(--text-primary)]">{a.instrument}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="px-2 py-0.5 rounded-lg bg-white/5 text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">§{a.section}</span>
+                            <span className="text-[11px] text-[var(--text-secondary)]">Priority {a.priority}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex items-center gap-6">
+                        <div>
+                          <p className="text-xl font-black text-[var(--text-primary)]">{fmtRupee(a.monthlyAmount)}</p>
+                          <p className="text-[11px] text-emerald-400 font-bold mt-1">Saves {fmtRupee(a.taxSaving)} tax</p>
+                        </div>
+                        <button 
+                          onClick={() => handleAddRecommended(a.instrument, a.monthlyAmount, (a.section === '80C' ? 'ELSS' : a.section === '80D' ? 'Other' : 'Other') as any)}
+                          className="p-3 rounded-2xl bg-white/5 hover:bg-violet-500 hover:text-white text-[var(--text-secondary)] transition-all active:scale-95 group"
+                        >
+                          <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="space-y-6">
+                  <div className={`${glass} p-6 bg-violet-500/5 border-violet-500/10`}>
+                    <p className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-4">Plan Summary</p>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <p className="text-sm text-[var(--text-secondary)]">Total Monthly</p>
+                        <p className="text-xl font-bold text-[var(--text-primary)]">{fmtRupee(recommendedPlan.allocations.reduce((s, x) => s + x.monthlyAmount, 0))}</p>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <p className="text-sm text-[var(--text-secondary)]">Annual Savings</p>
+                        <p className="text-xl font-bold text-emerald-400">{fmtRupee(recommendedPlan.projectedTaxSaving)}</p>
+                      </div>
+                      <div className="pt-4 border-t border-white/10">
+                        <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                          This plan is optimized to maximize take-home pay while utilizing high-yield tax-saving instruments.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${glass} p-6`}>
+                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-4">Why this plan?</p>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                      {taxResult?.reasoning || 'Our engine selected these instruments based on your cash flow and tax liability.'}
+                    </p>
+                    <Link href="/plan/summary" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-violet-400 hover:gap-3 transition-all">
+                      View full breakdown <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add/Edit Form Modal */}
         <AnimatePresence>

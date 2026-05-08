@@ -11,6 +11,7 @@ import {
   Upload,
   FileText,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Area,
   AreaChart,
@@ -30,6 +31,7 @@ import {
 } from '@/lib/mock-data'
 import { formatRupee } from '@/lib/utils/format'
 import { useTaxStore } from '@/lib/stores/tax-store'
+import { useTrackerStore, monthsBetween, fvSIP } from '@/lib/stores/tracker-store'
 import { generateInvestmentPlan } from '@money-os/tax-engine'
 
 const quickLinks = [
@@ -97,17 +99,73 @@ export function DashboardScreen() {
     }
   }
 
-  // General deadlines
+  const { sips, incomes, expenses } = useTrackerStore()
+  
+  const totalIncome = incomes.reduce((s, i) => s + i.monthlyAmount, 0)
+  const totalExpenses = expenses.reduce((s, e) => s + e.monthlyAmount, 0)
+  const monthlySurplus = totalIncome - totalExpenses
+
+  // Compute dynamic momentum chart data from real SIPs
+  const momentumData = Array.from({ length: 12 }, (_, i) => {
+    const targetDate = new Date()
+    targetDate.setMonth(targetDate.getMonth() - (11 - i))
+    const label = targetDate.toLocaleDateString('en-IN', { month: 'short' })
+    const isoDate = targetDate.toISOString()
+    
+    const value = sips.reduce((acc, sip) => {
+      const months = monthsBetween(sip.startDate, isoDate)
+      if (months <= 0) return acc
+      return acc + fvSIP(sip.monthlyAmount, sip.expectedCAGR, months)
+    }, 0)
+    
+    return { label, value: Math.round(value) }
+  })
+
+  // General deadlines (Dynamic for FY 2025-26)
+  const currentYear = 2026
+  activeEvents.push({
+    title: 'Q1 Advance Tax Due',
+    date: `Jun 15, ${currentYear}`,
+    description: 'First installment of advance tax (15%) for the new financial year.',
+  })
   activeEvents.push({
     title: 'Investment Proof Submission',
-    date: 'Dec 31, 2025',
+    date: `Jan 31, ${currentYear}`,
     description: 'Submit proof of investments to your employer to avoid excess TDS.',
   })
   activeEvents.push({
     title: 'ITR Filing Deadline',
-    date: 'Jul 31, 2026',
-    description: 'Last date to file income tax return for FY 2025-26 without penalty.',
+    date: `Jul 31, ${currentYear}`,
+    description: `Last date to file income tax return for FY 2025-26 without penalty.`,
   })
+
+  // Determine the primary next action
+  let actionTitle = '80C is fully utilized ✓'
+  let actionDescription = 'Great work! Consider NPS under 80CCD(1B) for an extra ₹50,000 deduction.'
+  let actionLink = '/plan/80c'
+  let actionButton = 'Review 80C plan'
+
+  if (nextActionAmount > 0) {
+    actionTitle = `Invest ${formatRupee(nextActionAmount)} more toward 80C`
+    actionDescription = 'A fresh ELSS top-up keeps your old-regime advantage intact.'
+    actionLink = '/plan/80c'
+    actionButton = 'Review 80C plan'
+  } else if (npsUsed < npsMax) {
+    actionTitle = `Gap found: ${formatRupee(npsMax - npsUsed)} in NPS`
+    actionDescription = 'You can save up to ₹15,600 more in tax by maxing out Section 80CCD(1B).'
+    actionLink = '/plan/nps'
+    actionButton = 'Start NPS'
+  } else if (section80DUsed < section80DMax) {
+    actionTitle = `Health cover: ${formatRupee(section80DMax - section80DUsed)} open`
+    actionDescription = 'Section 80D headroom remains. Consider top-up insurance for better coverage.'
+    actionLink = '/plan/80d'
+    actionButton = 'Review 80D'
+  } else {
+    actionTitle = 'Your plan is fully optimized'
+    actionDescription = 'All core tax-saving buckets are maxed out for the current financial year.'
+    actionLink = '/plan/summary'
+    actionButton = 'View summary'
+  }
 
   return (
     <MotionPage>
@@ -148,9 +206,9 @@ export function DashboardScreen() {
                 {currentFY}
               </span>
               {hasResult && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--success)]/20 bg-[var(--success-bg)] px-3 py-1 text-[11px] font-semibold text-[var(--success)]">
+                <Link href="/plan/summary" className="inline-flex items-center gap-1 rounded-full border border-[var(--success)]/20 bg-[var(--success-bg)] px-3 py-1 text-[11px] font-semibold text-[var(--success)] transition-transform hover:scale-105 active:scale-95">
                   <ShieldCheck size={13} /> Plan Active
-                </span>
+                </Link>
               )}
             </div>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--text-primary)] md:text-4xl">
@@ -169,21 +227,17 @@ export function DashboardScreen() {
               <div>
                 <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Next action</p>
                 <h2 className="mt-2 text-xl font-semibold text-[var(--text-primary)]">
-                  {nextActionAmount > 0
-                    ? `Invest ${formatRupee(nextActionAmount)} more toward 80C`
-                    : '80C is fully utilized ✓'}
+                  {actionTitle}
                 </h2>
                 <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                  {nextActionAmount > 0
-                    ? 'A fresh ELSS top-up keeps your old-regime advantage intact without disturbing monthly cash flow.'
-                    : 'Great work! Consider NPS under 80CCD(1B) for an extra ₹50,000 deduction.'}
+                  {actionDescription}
                 </p>
               </div>
               <Sparkles className="text-[var(--brand-primary)]" />
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/plan/80c">
-                <Button size="lg">Review 80C plan</Button>
+              <Link href={actionLink}>
+                <Button size="lg">{actionButton}</Button>
               </Link>
               {hasResult && (
                 <Link href="/result">
@@ -201,15 +255,16 @@ export function DashboardScreen() {
         <MetricCard
           label="Tax saved with recommended regime"
           value={formatRupee(taxSaved)}
-          subValue={`${result.recommendedRegime === 'old' ? 'Old' : 'New'} regime`}
+          subValue={`Saved vs ${result.recommendedRegime === 'old' ? 'New' : 'Old'} regime`}
           trend="up"
           trendLabel="Best-fit regime"
         />
         <MetricCard
-          label="80C progress"
-          value={`${Math.round((section80CUsed / section80CMax) * 100)}%`}
-          subValue={`${formatRupee(section80CUsed)} used`}
-          trend="neutral"
+          label="Monthly investable surplus"
+          value={formatRupee(monthlySurplus)}
+          subValue={`${totalIncome > 0 ? ((monthlySurplus / totalIncome) * 100).toFixed(1) : 0}% savings rate`}
+          trend={monthlySurplus > 0 ? "up" : "down"}
+          trendLabel={monthlySurplus > 0 ? "Surplus" : "Deficit"}
         />
         <MetricCard
           label="Monthly take-home"
@@ -247,7 +302,7 @@ export function DashboardScreen() {
           </CardHeader>
           <CardContent className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={yearlyReturnSeries}>
+              <AreaChart data={momentumData}>
                 <defs>
                   <linearGradient id="dashboard-fill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.35} />
@@ -255,11 +310,19 @@ export function DashboardScreen() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
-                <XAxis dataKey="label" stroke="var(--text-tertiary)" fontSize={12} />
+                <XAxis 
+                  dataKey="label" 
+                  stroke="var(--text-tertiary)" 
+                  fontSize={10} 
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <YAxis
                   stroke="var(--text-tertiary)"
-                  fontSize={12}
-                  tickFormatter={(value) => formatRupee(Number(value), true)}
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `₹${(Number(value)/100000).toFixed(1)}L`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -295,10 +358,10 @@ export function DashboardScreen() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-        <GlowCard customSize glowColor="purple" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
+        <GlowCard customSize glowColor={activeGoals.length > 0 ? "purple" : "neutral"} className={cn("bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col", activeGoals.length === 0 && "border-dashed opacity-80")}>
           <CardHeader>
             <CardTitle>Goals in motion</CardTitle>
-            <CardDescription>{hasResult ? 'Tracking your active tax-saving goals.' : 'Your financial goals will appear here.'}</CardDescription>
+            <CardDescription>{hasResult && activeGoals.length > 0 ? 'Tracking your active tax-saving goals.' : 'Your financial goals will appear here.'}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {activeGoals.length > 0 ? activeGoals.map((goal) => {
@@ -323,7 +386,13 @@ export function DashboardScreen() {
                 </div>
               )
             }) : (
-              <div className="text-center py-6 text-sm text-[var(--text-secondary)]">No active goals yet.</div>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <PieChart className="w-8 h-8 text-[var(--text-tertiary)] mb-3 opacity-20" />
+                <p className="text-sm text-[var(--text-secondary)] mb-4">No active goals found for this year.</p>
+                <Link href="/tracker/goals">
+                  <Button variant="outline" size="sm">Set your first goal</Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </GlowCard>

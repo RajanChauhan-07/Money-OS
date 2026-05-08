@@ -1,5 +1,8 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
+
 interface SectionProgressProps {
   label: string
   used: number
@@ -15,18 +18,34 @@ const sectionColor: Record<string, string> = {
   'HRA': 'var(--section-hra)',
 }
 
+const sectionLinks: Record<string, string> = {
+  '80C': '/plan/80c',
+  '80D': '/plan/80d',
+  'NPS': '/plan/nps',
+  'HRA': '/setup',
+}
+
 export function SectionProgress({ label, used, max, section, showWarning }: SectionProgressProps) {
+  const router = useRouter()
   const percent = Math.min((used / max) * 100, 100)
   const headroom = max - used
-  const isNearFull = percent >= 85
+  const isFull = percent >= 99.9
+  const isNearFull = percent >= 85 && !isFull
   const isEmpty = percent < 10
 
+  const handleClick = () => {
+    router.push(sectionLinks[section])
+  }
+
   return (
-    <div className="space-y-2">
+    <div 
+      className="group/progress space-y-2 cursor-pointer transition-opacity hover:opacity-80"
+      onClick={handleClick}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className="rounded px-1.5 py-0.5 text-[11px] font-semibold"
+            className="rounded px-1.5 py-0.5 text-[11px] font-semibold transition-transform group-hover/progress:scale-105"
             style={{
               backgroundColor: `color-mix(in srgb, ${sectionColor[section]} 16%, transparent)`,
               color: sectionColor[section],
@@ -44,8 +63,9 @@ export function SectionProgress({ label, used, max, section, showWarning }: Sect
       <div className="flex justify-between items-center">
         <span className="text-[11px] text-[var(--text-tertiary)]">{percent.toFixed(0)}% utilized</span>
         {isEmpty && <span className="text-[11px] text-[var(--warning)]">₹{(headroom/1000).toFixed(0)}K opportunity</span>}
+        {isFull && <span className="text-[11px] text-[var(--success)] font-medium">Fully maxed ✓</span>}
         {isNearFull && !isEmpty && <span className="text-[11px] text-[var(--success)]">Nearly maxed ✓</span>}
-        {!isEmpty && !isNearFull && <span className="text-[11px] text-[var(--text-tertiary)]">₹{(headroom/1000).toFixed(0)}K remaining</span>}
+        {!isEmpty && !isFull && !isNearFull && <span className="text-[11px] text-[var(--text-tertiary)]">₹{(headroom/1000).toFixed(0)}K remaining</span>}
       </div>
     </div>
   )
