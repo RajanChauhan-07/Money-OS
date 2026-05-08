@@ -280,6 +280,7 @@ export const useTaxStore = create<TaxStore>()(
           investments,
           financialYear: 'FY 2025-26',
           investmentIntent: get().investmentIntent,
+          ageCategory: profile.ageCategory,
         }
       },
 

@@ -144,6 +144,35 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
     })
   }
 
+  // ── 5.5 Section 80TTA/TTB (Savings Interest) ──────────────────────────
+  const isSenior = input.ageCategory === 'senior' || input.ageCategory === 'superSenior'
+  const ttaLimit = isSenior ? limits.section80TTB : limits.section80TTA
+  const ttaValue = isSenior ? deductions.section80TTB : deductions.section80TTA
+  const ttaLabel = isSenior ? '80TTB' : '80TTA'
+  
+  if (ttaValue > 0) {
+    const taxSaved = Math.round(ttaValue * oldRateWithCess)
+    insights.push({
+      id: '80tta-claimed',
+      section: ttaLabel,
+      severity: 'success',
+      title: `${ttaLabel} deduction of ${formatPrecise(ttaValue)} is saving you ${rupees(taxSaved)}`,
+      description: `Your interest income is being deducted from your taxable income under Section ${ttaLabel}.`,
+      potentialSaving: 0,
+      icon: 'PiggyBank',
+    })
+  } else if (!isSenior && (input.life.savingsInterest || 0) === 0) {
+    insights.push({
+      id: '80tta-suggest',
+      section: '80TTA',
+      severity: 'info',
+      title: 'Don\'t forget your Savings Account Interest',
+      description: `You can claim up to ₹10,000 for interest earned on your savings accounts under Section 80TTA (Old Regime only).`,
+      potentialSaving: 0,
+      icon: 'Info',
+    })
+  }
+
   // ── 6. Regime Recommendation ──────────────────────────────────────────
   const savings = result.savingsWithRecommended
   if (savings > 500) {

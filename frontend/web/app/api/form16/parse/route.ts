@@ -72,7 +72,7 @@ IMPORTANT:
 - confidence: rate how complete and clear the document was for extraction.
 `
 
-// Derive a planning profile from the raw extraction (Keep existing logic)
+// Derive a planning profile from the raw extraction
 function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedProfile {
   const annualCTC = extraction.grossSalary
   const basicAnnual = extraction.salaryComponents.basicSalary
@@ -86,6 +86,7 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
   const ltaMonthly = Math.round(ltaAnnual / 12)
   const specialMonthly = Math.round(specialAnnual / 12)
   const otherMonthly = Math.round(otherAnnual / 12)
+  const professionalTaxMonthly = Math.round((extraction.professionalTax || 0) / 12)
 
   const epfAnnual = extraction.epf_contribution || Math.round(basicAnnual * 0.12)
   const isRenting = extraction.hraExemptionClaimed > 0
@@ -94,7 +95,7 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
   const hraRatio = basicAnnual > 0 ? hraAnnual / basicAnnual : 0
   const isMetroCity = hraRatio >= 0.45
   const hasHomeLoan = extraction.section24b > 0
-  const intentional80C = Math.max(0, extraction.section80C - epfAnnual)
+  const intentional80C = Math.max(0, (extraction.section80C_eligible || extraction.section80C) - epfAnnual)
 
   const missedOpportunities: MissedOpportunity[] = []
   const _80cGap = 150000 - extraction.section80C
@@ -154,16 +155,23 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
       hra: hraMonthly,
       lta: ltaMonthly,
       specialAllowance: specialMonthly,
-      otherAllowances: otherMonthly,
+      otherAllowancesMonthly: otherMonthly,
       isMetroCity,
       cityName: isMetroCity ? 'Metro City' : 'Non-Metro',
       monthlyRent: estimatedMonthlyRent,
+      professionalTaxMonthly: professionalTaxMonthly || 200,
     },
+    ageCategory: 'below60',
     employer: {
       companyName: extraction.employerName,
+      employerType: 'Private',
+      isEPFApplicable: extraction.epf_contribution > 0,
+      epfEmployeeMonthly: Math.round(epfAnnual / 12),
+      epfEmployerMonthly: Math.round(epfAnnual / 12),
       epfEmployeePercent: 12,
       epfEmployerPercent: 12,
       hasEmployerNPS: extraction.section80CCD2 > 0,
+      employerNPSMonthly: Math.round((extraction.section80CCD2 || 0) / 12),
       employerNPSPercent: extraction.section80CCD2 > 0 ? Math.round((extraction.section80CCD2 / annualCTC) * 100) : 0,
     },
     life: {
@@ -171,23 +179,24 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
       hasHomeLoan,
       homeLoanInterestAnnual: extraction.section24b,
       homeLoanPrincipalAnnual: 0,
-      selfHealthPremium: Math.min(extraction.section80D, 25000),
+      propertyType: 'Self-occupied',
+      selfHealthPremium: Math.min(extraction.section80D || 0, 25000),
       familyHealthPremium: 0,
-      parentHealthPremium: Math.max(0, extraction.section80D - 25000),
-      hasSeniorParents: false,
+      parentHealthPremium: Math.max(0, (extraction.section80D || 0) - 25000),
+      hasSeniorParents: (extraction.section80D || 0) > 25000,
       dependentChildren: 0,
       hasDisabledDependent: false,
       disabilityType: 'normal',
       medicalTreatmentExpense: 0,
-      educationLoanInterest: 0,
+      educationLoanInterest: extraction.section80E || 0,
       section80EEInterest: 0,
       section80EEAInterest: 0,
       evLoanInterest: 0,
-      donations100pct: 0,
+      donations100pct: extraction.section80G || 0,
       donations50pct: 0,
       section80GGRent: 0,
-      savingsInterest: 0,
-      depositInterest: 0,
+      savingsInterest: extraction.section80TTA || 0,
+      depositInterest: extraction.section80TTB || 0,
       hasSelfDisability: false,
       selfDisabilityType: 'normal',
     },
@@ -196,10 +205,12 @@ function deriveProfileFromForm16(extraction: Form16Extraction): Form16DerivedPro
       licPremiumAnnual: 0,
       elssAnnual: intentional80C,
       nscAnnual: 0,
+      taxSavingFDAnnual: 0,
+      scssAnnual: 0,
       ssyAnnual: 0,
       tuitionFees: 0,
       epfEmployee: epfAnnual,
-      npsEmployee: extraction.section80CCD1B,
+      npsEmployee: extraction.section80CCD1B || 0,
       otherSection80C: 0,
     },
     missedOpportunities,

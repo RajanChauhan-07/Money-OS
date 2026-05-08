@@ -86,7 +86,9 @@ export interface Form16DerivedProfile {
     isMetroCity: boolean
     cityName: string
     monthlyRent: number
+    professionalTaxMonthly: number
   }
+  ageCategory: AgeCategory
   employer: {
     companyName: string
     employerType: 'Government' | 'PSU' | 'Private'
