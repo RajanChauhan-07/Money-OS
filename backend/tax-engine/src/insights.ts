@@ -32,6 +32,7 @@ export function generateInsights(input: TaxInput, result: TaxComparisonResult): 
   const limits = FY_2025_26.deductionLimits
   const oldMarginalRate = result.old.marginalRate / 100
   const oldRateWithCess = oldMarginalRate * 1.04
+  const recommended = result.recommendedRegime === 'old' ? result.old : result.new
 
   // ── 1. Loss Meter — Overpaying Alert ─────────────────────────────────
   if (result.lossMeter > 1000) {
