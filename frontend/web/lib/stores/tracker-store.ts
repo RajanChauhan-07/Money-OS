@@ -44,6 +44,7 @@ export interface ExpenseEntry {
   label: string
   category: ExpenseCategory
   monthlyAmount: number
+  classification: 'Need' | 'Want' | 'Investment'
 }
 
 // ─── Allocation Types ─────────────────────────────────────────────────────────

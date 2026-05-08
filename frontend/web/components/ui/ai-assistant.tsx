@@ -62,7 +62,8 @@ export function AIAssistantWidget() {
       if (res.ok && data.reply) {
         setMessages(prev => [...prev, { role: 'model', content: data.reply }])
       } else {
-        setMessages(prev => [...prev, { role: 'model', content: "Sorry, I ran into an error generating a response." }])
+        const errorMsg = data.error || "Sorry, I ran into an error generating a response."
+        setMessages(prev => [...prev, { role: 'model', content: errorMsg }])
       }
     } catch (e) {
       setMessages(prev => [...prev, { role: 'model', content: "Sorry, there was a network error." }])

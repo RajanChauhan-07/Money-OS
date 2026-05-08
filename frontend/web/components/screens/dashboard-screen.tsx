@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
   ArrowRight,
   CalendarClock,
@@ -10,6 +11,8 @@ import {
   Sparkles,
   Upload,
   FileText,
+  TrendingUp,
+  Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -31,7 +34,7 @@ import {
 } from '@/lib/mock-data'
 import { formatRupee } from '@/lib/utils/format'
 import { useTaxStore } from '@/lib/stores/tax-store'
-import { useTrackerStore, monthsBetween, fvSIP } from '@/lib/stores/tracker-store'
+import { useTrackerStore, monthsBetween, fvSIP, fvLumpsum } from '@/lib/stores/tracker-store'
 import { generateInvestmentPlan } from '@money-os/tax-engine'
 
 const quickLinks = [
@@ -41,6 +44,7 @@ const quickLinks = [
 
 export function DashboardScreen() {
   const { taxResult, derivedProfile, hasResult, scenarios } = useTaxStore()
+  const { sips, holdings, incomes, expenses, goals } = useTrackerStore()
 
   // Use real data if available, otherwise fall back to mock
   const currentFY = 'FY 2025-26'
@@ -63,33 +67,48 @@ export function DashboardScreen() {
 
   const recommended = result.recommendedRegime === 'old' ? result.old : result.new
 
-  // Auto-generate goals & events from the real plan if available
-  let activeGoals: { id: string; name: string; targetAmount: number; currentSavings: number; targetYear: number }[] = []
-  let activeEvents: { title: string; date: string; description: string }[] = []
+  // ── Unified Goal Sync ──────────────────────────────────────────────────
+  // Combine System-Generated Tax Goals + User-Created Wealth Goals
+  let activeGoals: { id: string; name: string; targetAmount: number; currentSavings: number; progress: number; emoji?: string }[] = []
   
+  // 1. Add User Goals (Penthouse, FIRE, etc.)
+  const today = new Date().toISOString()
+  goals.forEach(g => {
+    const monthsLeft = Math.max(0, monthsBetween(today, g.targetDate))
+    const yearsLeft = monthsLeft / 12
+    const projectedCorpus = fvLumpsum(g.currentSaved, g.expectedCAGR, yearsLeft) + fvSIP(g.monthlyContribution, g.expectedCAGR, monthsLeft)
+    const progress = Math.min(100, Math.round((projectedCorpus / g.targetAmount) * 100))
+    
+    activeGoals.push({
+      id: g.id,
+      name: g.name,
+      targetAmount: g.targetAmount,
+      currentSavings: g.currentSaved,
+      progress,
+      emoji: g.emoji
+    })
+  })
+
+  // 2. Add System Tax Goals if they exist
   if (hasResult && scenarios?.optimized) {
     const plan = generateInvestmentPlan(scenarios.optimized)
-    
     if (result.lossMeter > 0) {
       activeGoals.push({
         id: 'goal_tax_saving',
         name: 'Annual Tax Savings',
         targetAmount: result.lossMeter,
         currentSavings: Math.round(result.lossMeter * (plan.allocations.reduce((acc, a) => acc + a.monthlyAmount, 0) > 0 ? 0.3 : 0)),
-        targetYear: 2026,
+        progress: Math.round((Math.round(result.lossMeter * (plan.allocations.reduce((acc, a) => acc + a.monthlyAmount, 0) > 0 ? 0.3 : 0)) / result.lossMeter) * 100),
+        emoji: '🛡️'
       })
     }
-    
-    if (nextActionAmount > 0) {
-      activeGoals.push({
-        id: 'goal_80c',
-        name: '80C Completion',
-        targetAmount: section80CMax,
-        currentSavings: section80CUsed,
-        targetYear: 2026,
-      })
-    }
+  }
 
+  // ── Calendar Sync ───────────────────────────────────────────────────
+  let activeEvents: { title: string; date: string; description: string }[] = []
+  
+  if (hasResult && scenarios?.optimized) {
+    const plan = generateInvestmentPlan(scenarios.optimized)
     if (plan.allocations.length > 0) {
       activeEvents.push({
         title: 'Monthly SIP Auto-Debit',
@@ -99,8 +118,6 @@ export function DashboardScreen() {
     }
   }
 
-  const { sips, incomes, expenses } = useTrackerStore()
-  
   const totalIncome = incomes.reduce((s, i) => s + i.monthlyAmount, 0)
   const totalExpenses = expenses.reduce((s, e) => s + e.monthlyAmount, 0)
   const monthlySurplus = totalIncome - totalExpenses
@@ -121,7 +138,7 @@ export function DashboardScreen() {
     return { label, value: Math.round(value) }
   })
 
-  // General deadlines (Dynamic for FY 2025-26)
+  // General deadlines
   const currentYear = 2026
   activeEvents.push({
     title: 'Q1 Advance Tax Due',
@@ -169,20 +186,19 @@ export function DashboardScreen() {
 
   return (
     <MotionPage>
-      {/* If no result, show a CTA to get started */}
       {!hasResult && (
-        <section className="surface-panel overflow-hidden mb-6 border-[var(--brand-primary)]/20 bg-[var(--brand-primary)]/5">
+        <section className="surface-panel overflow-hidden mb-6 border-emerald-500/20 bg-emerald-500/5">
           <div className="px-6 py-6 md:px-8 md:py-8 text-center">
-            <Sparkles className="w-8 h-8 text-[var(--brand-primary)] mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
+            <Sparkles className="w-8 h-8 text-emerald-500 mx-auto mb-4" />
+            <h2 className="text-xl font-black text-[var(--text-primary)] mb-2 uppercase tracking-widest">
               See your real numbers
             </h2>
-            <p className="text-sm text-[var(--text-secondary)] mb-5 max-w-md mx-auto">
-              This dashboard is showing sample data. Upload your Form 16 or enter your details manually to see your actual tax savings and plan.
+            <p className="text-sm text-[var(--text-secondary)] mb-5 max-w-md mx-auto font-medium">
+              Dashboard in sample mode. Upload Form 16 to sync your real tax savings and investment strategy.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/upload">
-                <Button size="lg">
+                <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700">
                   <Upload size={16} className="mr-2" />
                   Upload Form 16
                 </Button>
@@ -202,46 +218,46 @@ export function DashboardScreen() {
         <div className="grid gap-6 px-6 py-6 md:grid-cols-[1.3fr_0.9fr] md:px-8 md:py-8">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                 {currentFY}
               </span>
               {hasResult && (
-                <Link href="/plan/summary" className="inline-flex items-center gap-1 rounded-full border border-[var(--success)]/20 bg-[var(--success-bg)] px-3 py-1 text-[11px] font-semibold text-[var(--success)] transition-transform hover:scale-105 active:scale-95">
+                <Link href="/plan/summary" className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-500 transition-transform hover:scale-105 active:scale-95">
                   <ShieldCheck size={13} /> Plan Active
                 </Link>
               )}
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--text-primary)] md:text-4xl">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-[var(--text-primary)] md:text-4xl">
               {hasResult
                 ? `${result.recommendedRegime === 'old' ? 'Old' : 'New'} regime saves you more.`
                 : `Good to see you, ${userName}.`}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base font-medium">
               {hasResult
                 ? result.reasoning
                 : 'Your annual plan currently leans toward the old regime because rent and second-home interest are doing real work. We kept the next step singular so the year feels manageable.'}
             </p>
           </div>
-          <div className="surface-elevated p-5">
+          <div className="surface-elevated p-6 border-l-4 border-l-emerald-500">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Next action</p>
-                <h2 className="mt-2 text-xl font-semibold text-[var(--text-primary)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-tertiary)]">Next action</p>
+                <h2 className="mt-2 text-xl font-black text-[var(--text-primary)] tracking-tight">
                   {actionTitle}
                 </h2>
-                <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                <p className="mt-2 text-sm text-[var(--text-secondary)] font-medium">
                   {actionDescription}
                 </p>
               </div>
-              <Sparkles className="text-[var(--brand-primary)]" />
+              <Sparkles className="text-emerald-500" />
             </div>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link href={actionLink}>
-                <Button size="lg">{actionButton}</Button>
+                <Button size="lg" className="bg-zinc-900 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-[10px]">{actionButton}</Button>
               </Link>
               {hasResult && (
                 <Link href="/result">
-                  <Button variant="outline" size="lg">
+                  <Button variant="outline" size="lg" className="font-black uppercase tracking-widest text-[10px]">
                     View comparison
                   </Button>
                 </Link>
@@ -257,14 +273,14 @@ export function DashboardScreen() {
           value={formatRupee(taxSaved)}
           subValue={`Saved vs ${result.recommendedRegime === 'old' ? 'New' : 'Old'} regime`}
           trend="up"
-          trendLabel="Best-fit regime"
+          trendLabel="Best-fit"
         />
         <MetricCard
           label="Monthly investable surplus"
           value={formatRupee(monthlySurplus)}
           subValue={`${totalIncome > 0 ? ((monthlySurplus / totalIncome) * 100).toFixed(1) : 0}% savings rate`}
           trend={monthlySurplus > 0 ? "up" : "down"}
-          trendLabel={monthlySurplus > 0 ? "Surplus" : "Deficit"}
+          trendLabel="Synced"
         />
         <MetricCard
           label="Monthly take-home"
@@ -283,10 +299,10 @@ export function DashboardScreen() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <GlowCard customSize glowColor="purple" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
+        <GlowCard customSize glowColor="emerald" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
           <CardHeader>
-            <CardTitle>Section utilization</CardTitle>
-            <CardDescription>The three deduction tracks that drive your tax savings.</CardDescription>
+            <CardTitle className="font-black uppercase tracking-widest text-sm">Section utilization</CardTitle>
+            <CardDescription className="font-medium">The three deduction tracks that drive your tax savings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <SectionProgress label="Core savings basket" used={section80CUsed} max={section80CMax} section="80C" />
@@ -295,128 +311,119 @@ export function DashboardScreen() {
           </CardContent>
         </GlowCard>
 
-        <GlowCard customSize glowColor="purple" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
+        <GlowCard customSize glowColor="cyan" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
           <CardHeader>
-            <CardTitle>Annual momentum</CardTitle>
-            <CardDescription>Portfolio value trend across the current financial year.</CardDescription>
+            <CardTitle className="font-black uppercase tracking-widest text-sm">Annual momentum</CardTitle>
+            <CardDescription className="font-medium">Portfolio value trend across the current financial year.</CardDescription>
           </CardHeader>
           <CardContent className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={momentumData}>
                 <defs>
                   <linearGradient id="dashboard-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
-                <XAxis 
-                  dataKey="label" 
-                  stroke="var(--text-tertiary)" 
-                  fontSize={10} 
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="var(--text-tertiary)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `₹${(Number(value)/100000).toFixed(1)}L`}
-                />
+                <CartesianGrid stroke="var(--border-subtle)" vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="label" stroke="#94a3b8" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v/100000).toFixed(1)}L`} />
                 <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '14px',
-                    color: 'var(--text-primary)',
-                  }}
-                  formatter={(value: number) => formatRupee(Number(value))}
+                  contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', color: '#fff' }}
+                  formatter={(value: number) => [formatRupee(Number(value)), '']}
                 />
-                <Area type="monotone" dataKey="value" stroke="var(--brand-primary)" fill="url(#dashboard-fill)" strokeWidth={3} />
+                <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="url(#dashboard-fill)" strokeWidth={4} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </GlowCard>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {quickLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="surface-panel p-5 transition hover:border-[var(--border-default)] hover:shadow-md">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{link.label}</p>
-                <p className="mt-2 text-sm text-[var(--text-secondary)]">{link.copy}</p>
-              </div>
-              <link.icon size={18} className="text-[var(--brand-primary)]" />
-            </div>
-            <span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary)]">
-              Open <ArrowRight size={14} />
-            </span>
-          </Link>
-        ))}
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-        <GlowCard customSize glowColor={activeGoals.length > 0 ? "purple" : "neutral"} className={cn("bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col", activeGoals.length === 0 && "border-dashed opacity-80")}>
+        <GlowCard customSize glowColor={activeGoals.length > 0 ? "emerald" : "neutral"} className={cn("bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col", activeGoals.length === 0 && "border-dashed opacity-80")}>
           <CardHeader>
-            <CardTitle>Goals in motion</CardTitle>
-            <CardDescription>{hasResult && activeGoals.length > 0 ? 'Tracking your active tax-saving goals.' : 'Your financial goals will appear here.'}</CardDescription>
+            <CardTitle className="font-black uppercase tracking-widest text-sm flex items-center gap-2">
+              <Target size={18} className="text-emerald-500" /> Goals in motion
+            </CardTitle>
+            <CardDescription className="font-medium">{hasResult && activeGoals.length > 0 ? 'Tracking your real-world targets and tax-saving milestones.' : 'Your financial goals will appear here.'}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {activeGoals.length > 0 ? activeGoals.map((goal) => {
-              const progress = Math.round((goal.currentSavings / goal.targetAmount) * 100)
-
-              return (
-                <div key={goal.id} className="surface-elevated p-4">
-                  <div className="flex items-start justify-between gap-4">
+            {activeGoals.length > 0 ? activeGoals.map((goal) => (
+              <div key={goal.id} className="surface-elevated p-5 border-l-4 border-l-emerald-500 hover:bg-emerald-500/[0.02] transition-all">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-900/5 dark:bg-white/5 flex items-center justify-center text-xl border border-black/5 dark:border-white/5 shadow-inner">
+                      {goal.emoji || '🎯'}
+                    </div>
                     <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">{goal.name}</p>
-                      <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                        {formatRupee(goal.currentSavings)} saved of {formatRupee(goal.targetAmount)} by {goal.targetYear}
+                      <p className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">{goal.name}</p>
+                      <p className="mt-1 text-[11px] font-bold text-[var(--text-secondary)] tabular-nums">
+                        {formatRupee(goal.currentSavings)} base saved • Target {formatRupee(goal.targetAmount)}
                       </p>
                     </div>
-                    <span className="rounded-full border border-[var(--border-subtle)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-                      {progress}%
-                    </span>
                   </div>
-                  <div className="section-bar mt-4">
-                    <div className="section-bar-fill" style={{ width: `${progress}%`, background: 'var(--brand-primary)' }} />
-                  </div>
+                  <span className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[10px] font-black text-emerald-500 tabular-nums">
+                    {goal.progress}%
+                  </span>
                 </div>
-              )
-            }) : (
+                <div className="relative h-2 rounded-full bg-black/5 dark:bg-white/5 mt-5 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }} animate={{ width: `${goal.progress}%` }}
+                    className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
+                  />
+                </div>
+              </div>
+            )) : (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <PieChart className="w-8 h-8 text-[var(--text-tertiary)] mb-3 opacity-20" />
-                <p className="text-sm text-[var(--text-secondary)] mb-4">No active goals found for this year.</p>
+                <p className="text-sm text-[var(--text-secondary)] mb-4 font-medium">No active goals found for this year.</p>
                 <Link href="/tracker/goals">
-                  <Button variant="outline" size="sm">Set your first goal</Button>
+                  <Button variant="outline" size="sm" className="font-black uppercase tracking-widest text-[9px]">Set your first goal</Button>
                 </Link>
               </div>
             )}
           </CardContent>
         </GlowCard>
 
-        <GlowCard customSize glowColor="purple" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
+        <GlowCard customSize glowColor="cyan" className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-col">
           <CardHeader>
-            <CardTitle>Upcoming calendar moments</CardTitle>
-            <CardDescription>The next deadlines that matter for cash flow, proof submission, and filing.</CardDescription>
+            <CardTitle className="font-black uppercase tracking-widest text-sm">Upcoming calendar moments</CardTitle>
+            <CardDescription className="font-medium">Crucial financial dates for cash flow and tax compliance.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {activeEvents.slice(0, 3).map((event) => (
-              <div key={event.title} className="flex gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
-                  <CalendarClock size={18} />
+              <div key={event.title} className="flex gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 hover:border-cyan-500/30 transition-all">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 shadow-inner">
+                  <CalendarClock size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">{event.title}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{event.date}</p>
-                  <p className="mt-2 text-sm text-[var(--text-secondary)]">{event.description}</p>
+                  <p className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">{event.title}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-500/60">{event.date}</p>
+                  <p className="mt-2 text-xs text-[var(--text-secondary)] font-medium leading-relaxed">{event.description}</p>
                 </div>
               </div>
             ))}
           </CardContent>
         </GlowCard>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 pt-4">
+        {quickLinks.map((link) => (
+          <Link key={link.href} href={link.href} className="surface-panel p-6 transition hover:border-emerald-500/30 hover:shadow-xl group">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-widest">{link.label}</p>
+                <p className="mt-2 text-sm text-[var(--text-secondary)] font-medium leading-relaxed">{link.copy}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-900/5 dark:bg-white/5 group-hover:bg-emerald-500/10 transition-colors">
+                <link.icon size={20} className="text-zinc-400 dark:text-white/40 group-hover:text-emerald-500" />
+              </div>
+            </div>
+            <span className="mt-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500 group-hover:gap-3 transition-all">
+              Go to {link.label} <ArrowRight size={14} strokeWidth={3} />
+            </span>
+          </Link>
+        ))}
       </div>
     </MotionPage>
   )

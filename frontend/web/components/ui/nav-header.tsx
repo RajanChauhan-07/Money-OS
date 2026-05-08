@@ -49,18 +49,8 @@ function NavHeader() {
           onMouseLeave={() => setPosition((pv) => ({ ...pv, opacity: 0 }))}
         >
           <Tab setPosition={setPosition} href="/">Home</Tab>
-          <Tab setPosition={setPosition}>Pricing</Tab>
-          <Tab setPosition={setPosition}>About</Tab>
-          <Tab setPosition={setPosition}>Services</Tab>
-          <Tab setPosition={setPosition}>Contact</Tab>
-
-          <div className="w-[1px] h-6 bg-white/20 self-center mx-2 z-20" />
-
-          <Tab setPosition={setPosition}>
-            <div className="flex items-center gap-1">
-              English <ChevronDown className="w-4 h-4" />
-            </div>
-          </Tab>
+          <Tab setPosition={setPosition} href="/about">About</Tab>
+          <Tab setPosition={setPosition} href="/services">Services</Tab>
           
           <Tab setPosition={setPosition} href="/login">
             <div className="flex items-center gap-2">
