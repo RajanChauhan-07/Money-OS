@@ -6,3 +6,9 @@ node_modules
 .env.*.local
 dist
 .turbo
+
+# Deployment artifacts
+money-os-key.pem
+money-os.tar.gz
+setup.sh
+*.pem

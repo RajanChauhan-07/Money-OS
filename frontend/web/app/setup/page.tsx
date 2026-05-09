@@ -738,6 +738,13 @@ export default function SetupPage() {
               <ArrowLeft className="w-4 h-4" />
               {currentStep === 0 ? 'Home' : 'Back'}
             </button>
+            <div className="w-1 h-1 rounded-full bg-[var(--border-strong)]" />
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest"
+            >
+              Dashboard
+            </button>
             <div className="h-4 w-px bg-white/10 hidden md:block" />
             <p className="text-sm text-[var(--text-secondary)] hidden md:block">
               {step.description}

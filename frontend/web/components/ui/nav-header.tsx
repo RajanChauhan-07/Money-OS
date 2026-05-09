@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, LogIn } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function NavHeader() {
   const [position, setPosition] = useState({
@@ -12,6 +13,17 @@ function NavHeader() {
     width: 0,
     opacity: 0,
   });
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkUser();
+  }, []);
 
   return (
     <div className="relative group">
@@ -51,12 +63,22 @@ function NavHeader() {
           <Tab setPosition={setPosition} href="/">Home</Tab>
           <Tab setPosition={setPosition} href="/about">About</Tab>
           <Tab setPosition={setPosition} href="/services">Services</Tab>
+          <Tab setPosition={setPosition} href="/learn">Learn</Tab>
           
-          <Tab setPosition={setPosition} href="/login">
-            <div className="flex items-center gap-2">
-              Log in
-            </div>
-          </Tab>
+          {isLoggedIn ? (
+            <Tab setPosition={setPosition} href="/dashboard">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-pulse" />
+                Dashboard
+              </div>
+            </Tab>
+          ) : (
+            <Tab setPosition={setPosition} href="/login">
+              <div className="flex items-center gap-2">
+                Log in
+              </div>
+            </Tab>
+          )}
 
           <div className="w-[1px] h-6 bg-white/20 self-center mx-2 z-20" />
           

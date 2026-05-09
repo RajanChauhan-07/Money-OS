@@ -44,6 +44,7 @@ export async function middleware(request: NextRequest) {
     '/notifications',
     '/settings',
     '/support',
+    '/setup',
   ]
 
   const isProtectedRoute = protectedPrefixes.some((prefix) =>
@@ -51,17 +52,16 @@ export async function middleware(request: NextRequest) {
   )
 
   // Auth routes — redirect to dashboard if already logged in
-  const authRoutes = ['/signup', '/login', '/otp', '/welcome']
+  const authRoutes = ['/login', '/signup', '/otp', '/welcome']
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route))
 
-  // Bypass authentication checks for now
-  // if (isProtectedRoute && !user) {
-  //   return NextResponse.redirect(new URL('/signup', request.url))
-  // }
+  if (isProtectedRoute && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
-  // if (isAuthRoute && user) {
-  //   return NextResponse.redirect(new URL('/dashboard', request.url))
-  // }
+  if (isAuthRoute && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
 
   return response
 }

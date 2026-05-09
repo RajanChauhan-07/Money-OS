@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
@@ -23,7 +24,7 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react'
-import { mockUser } from '@/lib/mock-data'
+
 import { useTaxStore } from '@/lib/stores/tax-store'
 
 const navItems = [
@@ -91,13 +92,21 @@ export function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen 
     )
   }
 
-  const { derivedProfile } = useTaxStore()
-  const userName = derivedProfile?.employer?.companyName 
-    ? "User" // Fallback if no specific name field is found in profile yet, or extract from email
-    : mockUser.name
+  const [userName, setUserName] = useState<string>('User')
+  const [userEmail, setUserEmail] = useState<string>('')
 
-  // Try to get a better name from profile if available
-  const displayUserName = derivedProfile?.employer?.companyName ? "User" : mockUser.name
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = getSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserEmail(user.email || '')
+        const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+        setUserName(displayName)
+      }
+    }
+    fetchUser()
+  }, [])
 
   const SidebarContent = () => (
     <motion.div
@@ -153,11 +162,11 @@ export function AppSidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen 
           >
             <div className="flex items-center gap-3">
                <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center text-white font-bold shadow-md">
-                 {displayUserName.charAt(0)}
+                 {userName.charAt(0).toUpperCase()}
                </div>
                <div className="flex-1 min-w-0">
-                 <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{displayUserName}</p>
-                 <p className="text-[10px] text-[var(--text-tertiary)] truncate">Premium User</p>
+                 <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{userName}</p>
+                 <p className="text-[10px] text-[var(--text-tertiary)] truncate">{userEmail || 'Premium User'}</p>
                </div>
             </div>
             <Link

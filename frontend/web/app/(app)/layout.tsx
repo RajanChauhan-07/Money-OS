@@ -1,14 +1,39 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
 import { MobileTopbar } from '@/components/layout/mobile-topbar'
 import { AIAssistantWidget } from '@/components/ui'
+import { useTrackerStore } from '@/lib/stores/tracker-store'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  
+  const { 
+    hydrateFromCloud, 
+    syncToCloud,
+    holdings,
+    sips,
+    incomes,
+    expenses,
+    allocations,
+    goals
+  } = useTrackerStore()
+
+  // Hydrate from cloud on mount
+  useEffect(() => {
+    hydrateFromCloud()
+  }, [hydrateFromCloud])
+
+  // Auto-sync to cloud when data changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncToCloud()
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [syncToCloud, holdings, sips, incomes, expenses, allocations, goals])
 
   return (
     <>

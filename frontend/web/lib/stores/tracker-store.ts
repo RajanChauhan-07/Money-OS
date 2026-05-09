@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { getSupabaseBrowserClient } from '../supabase/client'
 
 // ─── Portfolio Types ──────────────────────────────────────────────────────────
 export type AssetType = 'Stock' | 'Mutual Fund' | 'ETF' | 'FD' | 'Bond' | 'Gold' | 'Real Estate' | 'Crypto' | 'Other'
@@ -104,6 +105,10 @@ interface TrackerStore {
   addGoal: (g: Omit<Goal, 'id'>) => void
   updateGoal: (id: string, g: Partial<Goal>) => void
   deleteGoal: (id: string) => void
+
+  // Cloud Sync
+  syncToCloud: () => Promise<void>
+  hydrateFromCloud: () => Promise<void>
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10)
@@ -144,6 +149,56 @@ export const useTrackerStore = create<TrackerStore>()(
       addGoal: (g) => set((s) => ({ goals: [...s.goals, { ...g, id: uid() }] })),
       updateGoal: (id, g) => set((s) => ({ goals: s.goals.map(x => x.id === id ? { ...x, ...g } : x) })),
       deleteGoal: (id) => set((s) => ({ goals: s.goals.filter(x => x.id !== id) })),
+
+      // Cloud Sync Implementation
+      syncToCloud: async () => {
+        const supabase = getSupabaseBrowserClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const state = get()
+
+        // Batch update for all tables
+        await Promise.all([
+          supabase.from('holdings').upsert(state.holdings.map(h => ({ ...h, user_id: user.id }))),
+          supabase.from('sips').upsert(state.sips.map(s => ({ ...s, user_id: user.id }))),
+          supabase.from('incomes').upsert(state.incomes.map(i => ({ ...i, user_id: user.id }))),
+          supabase.from('expenses').upsert(state.expenses.map(e => ({ ...e, user_id: user.id }))),
+          supabase.from('allocations').upsert(state.allocations.map(a => ({ ...a, user_id: user.id }))),
+          supabase.from('goals').upsert(state.goals.map(g => ({ ...g, user_id: user.id }))),
+        ])
+      },
+
+      hydrateFromCloud: async () => {
+        const supabase = getSupabaseBrowserClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const [
+          { data: holdings },
+          { data: sips },
+          { data: incomes },
+          { data: expenses },
+          { data: allocations },
+          { data: goals },
+        ] = await Promise.all([
+          supabase.from('holdings').select('*').eq('user_id', user.id),
+          supabase.from('sips').select('*').eq('user_id', user.id),
+          supabase.from('incomes').select('*').eq('user_id', user.id),
+          supabase.from('expenses').select('*').eq('user_id', user.id),
+          supabase.from('allocations').select('*').eq('user_id', user.id),
+          supabase.from('goals').select('*').eq('user_id', user.id),
+        ])
+
+        set({
+          holdings: holdings || [],
+          sips: sips || [],
+          incomes: incomes || [],
+          expenses: expenses || [],
+          allocations: allocations || [],
+          goals: goals || [],
+        })
+      }
     }),
     {
       name: 'money-os-tracker-store',
@@ -195,7 +250,7 @@ export function cagr(buyPrice: number, currentPrice: number, years: number): num
 /** Format as ₹ with abbreviation */
 export function fmtRupee(n: number): string {
   if (Math.abs(n) >= 1_00_00_000) return `₹${(n / 1_00_00_000).toFixed(2)}Cr`
-  if (Math.abs(n) >= 1_00_000) return `₹${(n / 1_00_000).toFixed(2)}L`
+  if (Math.abs(n) >= 1_00_000) return `₹${(n / 1_00_00_000).toFixed(2)}L`
   if (Math.abs(n) >= 1_000) return `₹${(n / 1_000).toFixed(1)}K`
   return `₹${n.toFixed(0)}`
 }

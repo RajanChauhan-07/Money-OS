@@ -1,0 +1,52 @@
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files for the entire monorepo
+COPY package.json package-lock.json ./
+COPY frontend/web/package.json ./frontend/web/
+COPY backend/tax-engine/package.json ./backend/tax-engine/
+COPY backend/types/package.json ./backend/types/
+COPY frontend/ui/package.json ./frontend/ui/
+
+# Install dependencies (ignoring scripts to speed up)
+RUN npm ci
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Environment variables for build time
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
+
+# Build the monorepo
+RUN npx turbo run build --filter=@money-os/web
+
+# Stage 3: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built assets
+COPY --from=builder /app/frontend/web/public ./frontend/web/public
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/web/.next/static ./frontend/web/.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+# set hostname to localhost
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "frontend/web/server.js"]

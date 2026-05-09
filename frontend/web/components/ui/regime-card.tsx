@@ -62,7 +62,7 @@ export function RegimeCard({ result, isRecommended, savingsVsOther }: RegimeCard
             <h3 className="text-xl font-bold text-[var(--text-primary)]">
               {result.regime === 'old' ? 'Old Regime' : 'New Regime'}
             </h3>
-            <p className="text-[12px] text-[var(--text-secondary)] mt-1">Marginal rate: {result.marginalRate.toFixed(1)}%</p>
+            <p className="text-[12px] text-[var(--text-secondary)] mt-1">Marginal rate: {(result.marginalRate ?? 0).toFixed(1)}%</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Total Tax</p>

@@ -1,11 +1,53 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Upload, FileText, CheckCircle2, Shield, Calendar, Bot, Users, Search, Calculator, Download, ChevronDown, Briefcase, PieChart, Zap, ArrowRightLeft } from "lucide-react";
+import { ArrowRight, Upload, FileText, CheckCircle2, Shield, Calendar, Bot, Users, Search, Calculator, Download, ChevronDown, Briefcase, PieChart, Zap, ArrowRightLeft, LayoutDashboard } from "lucide-react";
 import { GlowCard, LanguageToggle, SplitText, LiquidButton, AuroraButton, NavHeader, CircularTestimonials } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
+function AuthHeroActions() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  useEffect(() => {
+    const checkUser = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkUser();
+  }, []);
+
+  return (
+    <div className="pt-12 flex flex-col sm:flex-row items-center justify-center gap-8">
+      {isLoggedIn ? (
+        <Link href="/dashboard">
+          <LiquidButton size="xxl" className="w-full sm:w-auto group">
+            <LayoutDashboard className="w-5 h-5 mr-2" />
+            Go to Dashboard
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </LiquidButton>
+        </Link>
+      ) : (
+        <Link href="/upload">
+          <LiquidButton size="xxl" className="w-full sm:w-auto group">
+            <Upload className="w-5 h-5 mr-2" />
+            Upload Form 16
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </LiquidButton>
+        </Link>
+      )}
+      <Link href="/setup">
+        <AuroraButton className="w-full sm:w-auto h-14 px-10 text-base">
+          <FileText className="w-5 h-5 mr-2" />
+          {isLoggedIn ? 'Manage Details' : 'Enter details manually'}
+        </AuroraButton>
+      </Link>
+    </div>
+  );
+}
 
 function FAQItem({ question, answer }: { question: string, answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,21 +111,8 @@ export default function LandingPage() {
             which regime saves more, and when to act. Upload your Form 16 and we'll show you.
           </p>
           
-          <div className="pt-12 flex flex-col sm:flex-row items-center justify-center gap-8">
-            <Link href="/upload">
-              <LiquidButton size="xxl" className="w-full sm:w-auto group">
-                <Upload className="w-5 h-5 mr-2" />
-                Upload Form 16
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </LiquidButton>
-            </Link>
-            <Link href="/setup">
-              <AuroraButton className="w-full sm:w-auto h-14 px-10 text-base">
-                <FileText className="w-5 h-5 mr-2" />
-                Enter details manually
-              </AuroraButton>
-            </Link>
-          </div>
+          <AuthHeroActions />
+          
           <p className="text-xs text-[var(--text-tertiary)] pt-4 flex items-center justify-center gap-2">
             <Shield className="w-3 h-3" />
             Your PDF is read once to extract numbers and deleted within 24 hours.

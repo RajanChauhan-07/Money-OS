@@ -304,7 +304,9 @@ export default function PortfolioPage() {
                 <Sparkles size={14} /> Engine insight
               </h3>
               <p className="text-xs font-bold text-zinc-600 dark:text-white/60 leading-relaxed">
-                Based on your current {fmtRupee(totalInvested)} allocation, your net worth is doubling every 6.2 years. Maintain current SIP velocity to reach 8-figure status.
+                {totalInvested > 0 
+                  ? `Based on your current ${fmtRupee(totalInvested)} allocation, your net worth is doubling every ${Math.max(1, (72 / 12)).toFixed(1)} years (projected at 12% CAGR). Maintain current SIP velocity to reach your 10-year goal of ${fmtRupee(totalValue * 3.1)}.`
+                  : "Add your first holding or start a SIP to generate real-time growth insights and projection velocity."}
               </p>
             </div>
           </div>

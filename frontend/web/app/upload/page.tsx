@@ -202,13 +202,22 @@ export default function UploadPage() {
     <div className="min-h-screen flex flex-col items-center relative z-20">
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 pt-[72px] pb-24">
         <div className="mb-12">
-          <button
-            onClick={() => router.push('/')}
-            className="group flex items-center gap-2 px-4 py-2 -ml-4 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Home
-          </button>
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => router.push('/')}
+              className="group flex items-center gap-2 px-4 py-2 -ml-4 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Home
+            </button>
+            <div className="w-1 h-1 rounded-full bg-[var(--border-strong)]" />
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="group flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest"
+            >
+              Dashboard
+            </button>
+          </div>
           <div className="text-center max-w-2xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-4">
               Upload your Form 16

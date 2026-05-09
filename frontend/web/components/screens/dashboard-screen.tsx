@@ -27,11 +27,9 @@ import {
 import { Button, CardContent, CardDescription, CardHeader, CardTitle } from '@money-os/ui'
 import { MetricCard, SectionProgress, GlowCard } from '@/components/ui'
 import { MotionPage } from '@/components/screens/motion-page'
-import {
-  computedTaxResult,
-  yearlyReturnSeries,
-  mockUser,
-} from '@/lib/mock-data'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { useState, useEffect } from 'react'
+import type { TaxComparisonResult } from '@money-os/types'
 import { formatRupee } from '@/lib/utils/format'
 import { useTaxStore } from '@/lib/stores/tax-store'
 import { useTrackerStore, monthsBetween, fvSIP, fvLumpsum } from '@/lib/stores/tracker-store'
@@ -46,24 +44,76 @@ export function DashboardScreen() {
   const { taxResult, derivedProfile, hasResult, scenarios } = useTaxStore()
   const { sips, holdings, incomes, expenses, goals } = useTrackerStore()
 
-  // Use real data if available, otherwise fall back to mock
+  const [userName, setUserName] = useState<string>('User')
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = getSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+        setUserName(displayName)
+      }
+    }
+    fetchUser()
+  }, [])
+
+  // Define a proper empty state result instead of falling back to mock
+  const emptyTaxResult: TaxComparisonResult = {
+    old: { 
+      regime: 'old',
+      totalTax: 0, 
+      monthlyTakeHome: 0, 
+      effectiveTaxRate: 0, 
+      marginalRate: 0,
+      slabs: [], 
+      taxableIncome: 0,
+      grossIncome: 0,
+      totalDeductions: 0,
+      taxBeforeSurcharge: 0,
+      surcharge: 0,
+      rebate87A: 0,
+      cess: 0,
+      monthlyTDS: 0,
+      annualTakeHome: 0
+    },
+    new: { 
+      regime: 'new',
+      totalTax: 0, 
+      monthlyTakeHome: 0, 
+      effectiveTaxRate: 0, 
+      marginalRate: 0,
+      slabs: [], 
+      taxableIncome: 0,
+      grossIncome: 0,
+      totalDeductions: 0,
+      taxBeforeSurcharge: 0,
+      surcharge: 0,
+      rebate87A: 0,
+      cess: 0,
+      monthlyTDS: 0,
+      annualTakeHome: 0
+    },
+    recommendedRegime: 'new',
+    savingsWithRecommended: 0,
+    lossMeter: 0,
+    reasoning: 'Upload your Form 16 or enter details manually to see your tax analysis.',
+    deductions: { section80C: 0, section80CMax: 150000, section80D_self: 0, section80D_parents: 0, section80D_max_self: 25000, section80D_max_parents: 25000, section80CCD1B: 0, section80CCD1BMax: 50000, hra: 0, section24: 0, lta: 0, standardDeduction: 50000, professionalTax: 0, totalDeductions: 0 }
+  }
+
   const currentFY = 'FY 2025-26'
-  const result = hasResult && taxResult ? taxResult : computedTaxResult
+  const result = (hasResult && taxResult) ? taxResult : emptyTaxResult
   const profile = derivedProfile
 
   // Derive metrics from real data
-  const taxSaved = Math.round(result.savingsWithRecommended)
+  const taxSaved = result.savingsWithRecommended
   const section80CUsed = result.deductions.section80C
   const section80CMax = result.deductions.section80CMax
   const section80DUsed = result.deductions.section80D_self + result.deductions.section80D_parents
   const section80DMax = result.deductions.section80D_max_self + result.deductions.section80D_max_parents
   const npsUsed = result.deductions.section80CCD1B
   const npsMax = 50000
-  const nextActionAmount = Math.max(0, section80CMax - section80CUsed)
-
-  const userName = profile?.employer?.companyName
-    ? profile.employer.companyName.split(' ')[0]
-    : mockUser.name.split(' ')[0]
+  const nextActionAmount = hasResult ? Math.max(0, section80CMax - section80CUsed) : 0
 
   const recommended = result.recommendedRegime === 'old' ? result.old : result.new
 
@@ -157,31 +207,33 @@ export function DashboardScreen() {
   })
 
   // Determine the primary next action
-  let actionTitle = '80C is fully utilized ✓'
-  let actionDescription = 'Great work! Consider NPS under 80CCD(1B) for an extra ₹50,000 deduction.'
-  let actionLink = '/plan/80c'
-  let actionButton = 'Review 80C plan'
+  let actionTitle = 'Initialize your plan'
+  let actionDescription = 'Upload your Form 16 or enter details manually to see your optimized tax strategy.'
+  let actionLink = '/upload'
+  let actionButton = 'Get started'
 
-  if (nextActionAmount > 0) {
-    actionTitle = `Invest ${formatRupee(nextActionAmount)} more toward 80C`
-    actionDescription = 'A fresh ELSS top-up keeps your old-regime advantage intact.'
-    actionLink = '/plan/80c'
-    actionButton = 'Review 80C plan'
-  } else if (npsUsed < npsMax) {
-    actionTitle = `Gap found: ${formatRupee(npsMax - npsUsed)} in NPS`
-    actionDescription = 'You can save up to ₹15,600 more in tax by maxing out Section 80CCD(1B).'
-    actionLink = '/plan/nps'
-    actionButton = 'Start NPS'
-  } else if (section80DUsed < section80DMax) {
-    actionTitle = `Health cover: ${formatRupee(section80DMax - section80DUsed)} open`
-    actionDescription = 'Section 80D headroom remains. Consider top-up insurance for better coverage.'
-    actionLink = '/plan/80d'
-    actionButton = 'Review 80D'
-  } else {
-    actionTitle = 'Your plan is fully optimized'
-    actionDescription = 'All core tax-saving buckets are maxed out for the current financial year.'
-    actionLink = '/plan/summary'
-    actionButton = 'View summary'
+  if (hasResult) {
+    if (nextActionAmount > 0) {
+      actionTitle = `Invest ${formatRupee(nextActionAmount)} more toward 80C`
+      actionDescription = 'A fresh ELSS top-up keeps your old-regime advantage intact.'
+      actionLink = '/plan/80c'
+      actionButton = 'Review 80C plan'
+    } else if (npsUsed < npsMax) {
+      actionTitle = `Gap found: ${formatRupee(npsMax - npsUsed)} in NPS`
+      actionDescription = 'You can save up to ₹15,600 more in tax by maxing out Section 80CCD(1B).'
+      actionLink = '/plan/nps'
+      actionButton = 'Start NPS'
+    } else if (section80DUsed < section80DMax) {
+      actionTitle = `Health cover: ${formatRupee(section80DMax - section80DUsed)} open`
+      actionDescription = 'Section 80D headroom remains. Consider top-up insurance for better coverage.'
+      actionLink = '/plan/80d'
+      actionButton = 'Review 80D'
+    } else {
+      actionTitle = 'Your plan is fully optimized'
+      actionDescription = 'All core tax-saving buckets are maxed out for the current financial year.'
+      actionLink = '/plan/summary'
+      actionButton = 'View summary'
+    }
   }
 
   return (
@@ -235,7 +287,7 @@ export function DashboardScreen() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base font-medium">
               {hasResult
                 ? result.reasoning
-                : 'Your annual plan currently leans toward the old regime because rent and second-home interest are doing real work. We kept the next step singular so the year feels manageable.'}
+                : 'Your financial roadmap will appear here once you provide your tax and income details. We will analyze your profile to recommend the best regime.'}
             </p>
           </div>
           <div className="surface-elevated p-6 border-l-4 border-l-emerald-500">

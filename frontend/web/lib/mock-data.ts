@@ -66,10 +66,12 @@ export const mockStructure: SalaryStructure = {
   hra: 25000,
   lta: 2500,
   specialAllowance: 54000,
-  otherAllowances: 9600,
+  otherAllowancesMonthly: 9600,
+  bonusAnnual: 0,
   isMetroCity: true,
   cityName: 'Mumbai',
   monthlyRent: 25000,
+  professionalTaxMonthly: 200,
 }
 
 export const mockEmployer: EmployerDetails = {
@@ -100,6 +102,8 @@ export const mockInvestments: ExistingInvestments = {
   licPremiumAnnual: 0,
   elssAnnual: 20000,
   nscAnnual: 0,
+  taxSavingFDAnnual: 0,
+  scssAnnual: 0,
   ssyAnnual: 0,
   tuitionFees: 0,
   epfEmployee: 72000,

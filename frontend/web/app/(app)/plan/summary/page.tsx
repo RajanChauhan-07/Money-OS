@@ -40,17 +40,39 @@ export default function PlanSummaryPage() {
 
   if (!hasResult || !taxResult || !scenarios) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-base)]">
-        <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)]/10 flex items-center justify-center mb-6">
-          <Sparkles className="text-[var(--brand-primary)]" size={32} />
-        </div>
-        <h1 className="text-2xl font-bold mb-3 text-[var(--text-primary)]">No active plan found</h1>
-        <p className="text-[var(--text-secondary)] max-w-sm mb-8">
-          We need your details to build a custom roadmap. Start by uploading your Form 16 or entering manually.
-        </p>
-        <Link href="/upload">
-          <Button size="lg" className="px-8">Build My Plan</Button>
-        </Link>
+      <div className="min-h-[calc(100vh-160px)] flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+        {/* Abstract Background Glows */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[var(--brand-primary)]/10 blur-[120px] rounded-full -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[var(--brand-secondary)]/5 blur-[80px] rounded-full -z-10 translate-x-20" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full space-y-8"
+        >
+          <div className="relative mx-auto w-24 h-24 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl backdrop-blur-xl group">
+            <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-[var(--brand-primary)]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <Sparkles className="text-[var(--brand-primary)] relative z-10" size={40} />
+          </div>
+          
+          <div className="space-y-3">
+            <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)]">
+              Your vision is <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)]">waiting to be built</span>
+            </h1>
+            <p className="text-[var(--text-secondary)] font-medium leading-relaxed">
+              We need your financial blueprints to generate a custom roadmap. Upload your Form 16 or start manual entry to begin.
+            </p>
+          </div>
+          
+          <div className="pt-4">
+            <Link href="/upload">
+              <button className="h-14 px-10 rounded-2xl bg-[var(--brand-primary)] hover:scale-105 text-zinc-900 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-[var(--brand-primary)]/20 active:scale-95 transition-all">
+                Construct My Plan
+              </button>
+            </Link>
+          </div>
+        </motion.div>
       </div>
     )
   }

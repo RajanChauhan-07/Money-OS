@@ -98,6 +98,7 @@ const defaultStructure: SalaryStructure = {
   isMetroCity: false,
   cityName: '',
   monthlyRent: 0,
+  professionalTaxMonthly: 0,
 }
 
 const defaultEmployer: EmployerDetails = {
