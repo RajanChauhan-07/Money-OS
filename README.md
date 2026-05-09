@@ -444,7 +444,11 @@ graph LR
 
 ## screenshots
 
-> *coming soon — recording the demo walkthrough right now*
+<img width="2940" height="1912" alt="WhatsApp Image 2026-05-09 at 06 26 00" src="https://github.com/user-attachments/assets/15d330f8-3404-4f66-9279-968022ba70a7" />
+<img width="2940" height="1908" alt="WhatsApp Image 2026-05-09 at 06 27 36" src="https://github.com/user-attachments/assets/59ab2a4f-938c-4c6a-9e3b-e79f2f40ef9b" />
+<img width="2940" height="1912" alt="WhatsApp Image 2026-05-09 at 06 27 53" src="https://github.com/user-attachments/assets/faee272c-8390-4afe-8473-42b7bdd571ee" />
+<img width="2940" height="1912" alt="WhatsApp Image 2026-05-09 at 06 30 29" src="https://github.com/user-attachments/assets/4851e056-7fbd-4d20-a811-2577ad7f44c0" />
+
 
 ---
 
