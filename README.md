@@ -85,13 +85,11 @@ here's what it actually does right now:
 **10. reports**
 - tax comparison report
 - investment plan summary
-- form 12bb generator (the thing hr asks for in january)
 - capital gains view
 - everything exportable
 
 **11. authentication & onboarding**
-- otp-based signup (mobile + email)
-- 7-step onboarding: profile → pan → kyc → face → bank → mpin → salary setup
+- using email
 - session management with supabase auth
 - role-based access (user, admin, ops, support)
 
@@ -397,23 +395,23 @@ TaxInput + Result → generateInvestmentPlan() → InvestmentPlan
 
 okay so umm...here's what i'd build next. honestly there's so much i want to do.
 
-**voice assistant — a ca that speaks your language.** i'd integrate elevenlabs for text-to-speech. imagine uploading your form 16 and instead of reading numbers on a screen, a voice walks you through it: "hey, so your employer put you in new regime but hmm...looking at your hra and home loan, old regime would actually save you ₹34,000. let me explain why." that's the experience i want. a ca who talks to you. in hindi, tamil, telugu, marathi, bengali — whatever you're comfortable with. because tax literacy in india is terrible and most people aren't comfortable reading english financial documents.
+**1. voice assistant — a ca that speaks your language.** i'd integrate elevenlabs for text-to-speech. imagine uploading your form 16 and instead of reading numbers on a screen, a voice walks you through it: "hey, so your employer put you in new regime but hmm...looking at your hra and home loan, old regime would actually save you ₹34,000. let me explain why." that's the experience i want. a ca who talks to you. in hindi, tamil, telugu, marathi, bengali — whatever you're comfortable with. because tax literacy in india is terrible and most people aren't comfortable reading english financial documents.
 
-**vernacular ai bot.** building on the voice thing — a full conversational ai that explains taxes in regional languages. not just translation, but actual explanation in the way a local ca would talk to you. "arre bhai, dekho 80c mein aapne sirf 72 hazaar lagaye hain epf se. abhi bhi 78 hazaar ka room hai. elss daal do, tax bachega." that kind of thing. a ca who is comfortable in every language, who walks through the journey from start to end.
+**2. vernacular ai bot.** building on the voice thing — a full conversational ai that explains taxes in regional languages. not just translation, but actual explanation in the way a local ca would talk to you. "arre bhai, dekho 80c mein aapne sirf 72 hazaar lagaye hain epf se. abhi bhi 78 hazaar ka room hai. elss daal do, tax bachega." that kind of thing. a ca who is comfortable in every language, who walks through the journey from start to end.
 
-**google auth + social login.** right now we have otp-based auth which works, but google sign-in would make onboarding instant. one tap and you're in. no otp, no waiting. just start planning.
+**3. google auth + social login.** right now we have otp-based auth which works, but google sign-in would make onboarding instant. one tap and you're in. no otp, no waiting. just start planning.
 
-**mf aggregator integrations.** connecting to actual mutual fund aggregators (like mfcentral, cams, kfintech) so your real portfolio data auto-populates. right now we have mock data for the portfolio view — with real integrations, the dashboard would show your actual holdings, actual xirr, actual gains. and then the recommendation engine becomes insanely powerful because it knows what you already own.
+**4. mf aggregator integrations.** connecting to actual mutual fund aggregators (like mfcentral, cams, kfintech) so your real portfolio data auto-populates. right now we have mock data for the portfolio view — with real integrations, the dashboard would show your actual holdings, actual xirr, actual gains. and then the recommendation engine becomes insanely powerful because it knows what you already own.
 
-**mobile app.** this is huge. a large portion of the audience is on mobile — like 85% of india's internet users. i'd build a react native app (or maybe expo) with the same tax engine running locally. offline-first, biometric auth, push notifications for sip dates and deadlines. the web app is great for detailed planning, but the mobile app would be the daily driver.
+**5. mobile app.** this is huge. a large portion of the audience is on mobile — like 85% of india's internet users. i'd build a react native app (or maybe expo) with the same tax engine running locally. offline-first, biometric auth, push notifications for sip dates and deadlines. the web app is great for detailed planning, but the mobile app would be the daily driver.
 
-**academy v2 — like varsity for taxes.** you know how zerodha built varsity? it's become THE resource for learning about markets in india. i want money os academy to be that for taxes and personal finance. deep, structured courses — not blog posts. "understanding your payslip", "hra vs 80gg: which one applies to you?", "how to read your form 26as", "when does old regime make sense?". with quizzes, progress tracking, and certificates maybe. because tax and financial literacy in india is genuinely low and most people aren't even aware of what they don't know.
+**6. academy v2 — like varsity for taxes.** you know how zerodha built varsity? it's become THE resource for learning about markets in india. i want money os academy to be that for taxes and personal finance. deep, structured courses — not blog posts. "understanding your payslip", "hra vs 80gg: which one applies to you?", "how to read your form 26as", "when does old regime make sense?". with quizzes, progress tracking, and certificates maybe. because tax and financial literacy in india is genuinely low and most people aren't even aware of what they don't know.
 
-**monetization.** i'd explore subscriptions — maybe a premium tier for advanced features like multi-year planning, capital gains optimization, family tax planning (spouse + parents), and priority ai support. maybe a ₹99/month or ₹499/year plan. i'd brainstorm more honestly, talk to users, understand what they'd actually pay for. the core planning tool stays free forever though — that's non-negotiable.
+**7. monetization.** i'd explore subscriptions — maybe a premium tier for advanced features like multi-year planning, capital gains optimization, family tax planning (spouse + parents), and priority ai support. maybe a ₹99/month or ₹499/year plan. i'd brainstorm more honestly, talk to users, understand what they'd actually pay for. the core planning tool stays free forever though — that's non-negotiable.
 
-**security hardening.** implementing csp headers, rate limiting on all api routes, audit log encryption, and automated pen testing. also api key rotation, secret scanning in ci/cd, and proper cors configuration for production. the dpdp act compliance is already built into the database schema but i'd add data export (right to portability) and automated deletion workflows.
+**8. security hardening.** implementing csp headers, rate limiting on all api routes, audit log encryption, and automated pen testing. also api key rotation, secret scanning in ci/cd, and proper cors configuration for production. the dpdp act compliance is already built into the database schema but i'd add data export (right to portability) and automated deletion workflows.
 
-**itr filing integration.** the dream endgame — after you plan your taxes, one click to actually file your itr. partner with tax filing services or build a direct integration with the income tax portal. that closes the entire loop.
+**9. itr filing integration.** the dream endgame — after you plan your taxes, one click to actually file your itr. partner with tax filing services or build a direct integration with the income tax portal. that closes the entire loop.
 
 ---
 
@@ -458,8 +456,7 @@ the technical bet is simple: **tax computation belongs on the client, not behind
 
 ## credits
 
-built by [rajan chauhan](https://github.com/RajanChauhan-07) — a salaried engineer who got tired of not understanding his own taxes.
-
+built by [rajan chauhan](https://github.com/RajanChauhan-07)
 ---
 
 *money os does not file itr, execute investments, or manage money. it is a planning and education tool. for formal tax advice, please consult a qualified chartered accountant.*
